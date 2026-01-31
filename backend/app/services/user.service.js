@@ -1,5 +1,6 @@
 const { ObjectId } = require("mongodb");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
 class UserService {
   constructor(client) {
@@ -13,13 +14,13 @@ class UserService {
       name: payload.name,
       email: payload.email,
       password: payload.password,
-      phone: payload.phone,
-      avatar_url: payload.avatar_url,
-      address: payload.address,
+      phone: payload.phone || "",
+      avatar_url: payload.avatar_url || "",
+      address: payload.address || "",
       role: payload.role || "user",
-      oauth: { google_id: payload.oauth.google_id },
       status: payload.status || "pending",
       activation_token: payload.activation_token,
+      activation_token_expires: payload.activation_token_expires,
       created_at: new Date(),
       updated_at: new Date(),
     };
@@ -30,19 +31,96 @@ class UserService {
     return user;
   }
 
-  async create(payload) {}
+  async create(payload) {
+    const data = this.extractData(payload);
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    if (data.password) {
+      const salt = await bcrypt.genSalt(10);
+      data.password = await bcrypt.hash(data.password, salt);
+    }
+    data.activation_token = tokenHash;
+    data.activation_token_expires = expiresAt;
+    const result = await this.User.insertOne(data);
+    return { insertedId: result.insertedId, rawToken };
+  }
 
-  async findById(id) {}
+  async findByEmail(email) {
+    return this.User.findOne({ email });
+  }
 
-  async findByEmail(email) {}
+  async activateByUserIdAndToken(userId, rawToken) {
+    const tokenHash = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
 
-  async find(filter = {}, options = {}) {}
+    const result = await this.User.findOneAndUpdate(
+      {
+        _id: ObjectId.isValid(userId) ? new ObjectId(userId) : null,
+        activation_token: tokenHash,
+        activation_token_expires: { $gt: new Date() },
+        status: "pending",
+      },
+      {
+        $set: { status: "active", updated_at: new Date() },
+        $unset: { activation_token: "", activation_token_expires: "" },
+      },
+      { returnDocument: "after" },
+    );
 
-  async update(id, payload) {}
+    if (!result) return null;
+
+    return {
+      userId: result._id,
+      status: result.status,
+    };
+  }
+
+  async findById(id) {
+    return await this.User.findOne({
+      _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
+    });
+  }
+
+  async find(filter) {
+    const cursor = await this.User.find(filter);
+    return await cursor.toArray();
+  }
+
+  async findAll() {
+    return await this.find({});
+  }
+
+  async update(id, payload) {
+    if (payload.password) {
+      payload.password_hash = await bcrypt.hash(payload.password, 10);
+      delete payload.password;
+    }
+    const filter = {
+      _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
+    };
+    const update = this.extractData(payload);
+    const result = await this.User.findOneAndUpdate(
+      filter,
+      { $set: update },
+      { returnDocument: "after" },
+    );
+    return result;
+  }
 
   async updateStatus(id, status) {}
 
-  async delete(id) {}
+  async delete(id) {
+    const result = await this.User.findOneAndDelete({
+      _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
+    });
+    return result;
+  }
 }
 
 module.exports = UserService;
