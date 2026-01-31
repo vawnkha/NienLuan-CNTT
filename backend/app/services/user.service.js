@@ -14,11 +14,11 @@ class UserService {
       name: payload.name,
       email: payload.email,
       password: payload.password,
-      phone: payload.phone || "",
-      avatar_url: payload.avatar_url || "",
-      address: payload.address || "",
-      role: payload.role || "user",
-      status: payload.status || "pending",
+      phone: payload.phone,
+      avatar_url: payload.avatar_url,
+      address: payload.address,
+      role: payload.role,
+      status: payload.status,
       activation_token: payload.activation_token,
       activation_token_expires: payload.activation_token_expires,
       created_at: new Date(),
@@ -45,6 +45,11 @@ class UserService {
     }
     data.activation_token = tokenHash;
     data.activation_token_expires = expiresAt;
+    data.status = "pending";
+    data.role = "user";
+    data.phone = "";
+    data.avatar_url = "";
+    data.address = "";
     const result = await this.User.insertOne(data);
     return { insertedId: result.insertedId, rawToken };
   }
