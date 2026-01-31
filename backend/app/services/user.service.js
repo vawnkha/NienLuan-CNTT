@@ -97,14 +97,15 @@ class UserService {
   }
 
   async update(id, payload) {
-    if (payload.password) {
-      payload.password_hash = await bcrypt.hash(payload.password, 10);
-      delete payload.password;
+    const update = this.extractData(payload);
+
+    if (update.password) {
+      const salt = await bcrypt.genSalt(10);
+      update.password = await bcrypt.hash(update.password, salt);
     }
     const filter = {
       _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
     };
-    const update = this.extractData(payload);
     const result = await this.User.findOneAndUpdate(
       filter,
       { $set: update },
