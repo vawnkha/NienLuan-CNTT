@@ -85,7 +85,10 @@ exports.forgotPassword = async (req, res, next) => {
       resetLink,
       expiresMinutes: 15,
     });
-    return res.send({ message: "Yêu cầu đặt lại mật khẩu đã được gửi" });
+    return res.send({
+      message:
+        "Yêu cầu đặt lại mật khẩu đã được gửi, vui lòng kiểm tra email của bạn.",
+    });
   } catch (error) {
     return next(new ApiError(500, "Lỗi yêu cầu đặt lại mật khẩu"));
   }
@@ -98,7 +101,7 @@ exports.resetPassword = async (req, res, next) => {
     }
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
     const userService = new UserService(MongoDB.client);
-    const user = await userService.User.findOne({
+    const user = await userService.findOne({
       resetToken: tokenHash,
       resetTokenExpiresAt: { $gt: new Date() },
     });
