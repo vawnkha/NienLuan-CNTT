@@ -38,22 +38,24 @@ async function sendActivationEmail({ to, name, activationLink }) {
   return transporter.sendMail({ from, to, subject, html });
 }
 
-async function sendResetPasswordEmail({ to, name, resetLink }) {
+async function sendResetPasswordEmail({ to, name, resetLink, expiresMinutes }) {
   const transporter = createTransporter();
 
   const from = `MyShop <${process.env.MAIL_USER}>`;
-  const subject = "Đặt lại mật khẩu của bạn";
+  const subject = "Đặt lại mật khẩu";
+
   const html = `
     <div style="font-family: Arial, sans-serif; line-height:1.5">
       <h2>Xin chào ${name || "bạn"},</h2>
-      <p>Bạn đã yêu cầu đặt lại mật khẩu. Vui lòng bấm vào nút bên dưới để đặt lại mật khẩu:</p>
+      <p>Bạn vừa yêu cầu đặt lại mật khẩu. Bấm nút bên dưới để tiếp tục:</p>
       <p>
         <a href="${resetLink}"
            style="display:inline-block;padding:10px 14px;background:#111;color:#fff;text-decoration:none;border-radius:8px">
           Đặt lại mật khẩu
         </a>
       </p>
-      <p>Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.</p>
+      <p>Link sẽ hết hạn sau <b>${expiresMinutes || 15} phút</b>.</p>
+      <p>Nếu không phải bạn, hãy bỏ qua email này.</p>
     </div>
   `;
 

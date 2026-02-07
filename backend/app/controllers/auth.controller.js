@@ -55,57 +55,53 @@ exports.changePassword = async (req, res, next) => {
     return next(new ApiError(500, "Lỗi đổi mật khẩu"));
   }
 };
+
 exports.forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
-    if (!email) {
-      return next(new ApiError(400, "Email không được để trống"));
-    }
+    if (!email) return next(new ApiError(400, "Email không được để trống"));
+
     const userService = new UserService(MongoDB.client);
-    const user = await userService.findByEmail(email);
-    if (!user) {
+
+    const info = await userService.setResetPasswordTokenByEmail(email, 15);
+    if (!info) {
       return next(new ApiError(404, "Người dùng với email này không tồn tại"));
     }
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    const tokenHash = crypto
-      .createHash("sha256")
-      .update(rawToken)
-      .digest("hex");
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    await userService.update(user._id, {
-      resetToken: tokenHash,
-      resetTokenExpiresAt: expiresAt,
-    });
+
     const baseUrl = process.env.FRONTEND_BASE_URL || "http://localhost:3000";
-    const resetLink = `${baseUrl}/reset-password?token=${rawToken}`;
+    const resetLink = `${baseUrl}/api/auth/reset-password/${info.userId}/${info.rawToken}`;
 
     await sendResetPasswordEmail({
-      to: user.email,
-      name: user.name,
+      to: info.email,
+      name: info.name,
       resetLink,
       expiresMinutes: 15,
     });
+
     return res.send({
-      message:
-        "Yêu cầu đặt lại mật khẩu đã được gửi, vui lòng kiểm tra email của bạn.",
+      message: "Yêu cầu đặt lại mật khẩu đã được gửi, vui lòng kiểm tra email.",
     });
   } catch (error) {
     return next(new ApiError(500, "Lỗi yêu cầu đặt lại mật khẩu"));
   }
 };
+
 exports.resetPassword = async (req, res, next) => {
   try {
-    const { token, newPassword } = req.body;
+    const { userId, token } = req.params;
+    const { newPassword } = req.body;
     if (!token || !newPassword) {
       return next(new ApiError(400, "Token và mật khẩu mới là bắt buộc"));
     }
-    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
     const userService = new UserService(MongoDB.client);
-    const user = await userService.findOne({
-      resetToken: tokenHash,
-      resetTokenExpiresAt: { $gt: new Date() },
-    });
-    if (!user) {
+
+    const updated = await userService.resetPasswordByToken(
+      userId,
+      token,
+      newPassword,
+    );
+    if (!updated) {
       return next(
         new ApiError(
           400,
@@ -113,11 +109,7 @@ exports.resetPassword = async (req, res, next) => {
         ),
       );
     }
-    await userService.update(user._id, {
-      password: newPassword,
-      resetToken: null,
-      resetTokenExpiresAt: null,
-    });
+
     return res.send({ message: "Đặt lại mật khẩu thành công" });
   } catch (error) {
     return next(new ApiError(500, "Lỗi đặt lại mật khẩu"));

@@ -86,10 +86,79 @@ class UserService {
     };
   }
 
+  async setResetPasswordTokenByEmail(email, expiresMinutes = 15) {
+    const user = await this.User.findOne({ email });
+    if (!user) return null;
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
+    const expiresAt = new Date(Date.now() + expiresMinutes * 60 * 1000);
+
+    await this.User.updateOne(
+      { _id: user._id, status: "active" },
+      {
+        $set: {
+          resetToken: tokenHash,
+          resetTokenExpiresAt: expiresAt,
+          updated_at: new Date(),
+        },
+      },
+    );
+
+    return {
+      userId: user._id,
+      email: user.email,
+      name: user.name,
+      rawToken,
+      expiresAt,
+      expiresMinutes,
+    };
+  }
+
+  async resetPasswordByToken(userId, rawToken, newPassword) {
+    const tokenHash = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+    const result = await this.User.findOneAndUpdate(
+      {
+        _id: ObjectId.isValid(userId) ? new ObjectId(userId) : null,
+        resetToken: tokenHash,
+        resetTokenExpiresAt: { $gt: new Date() },
+        status: "active",
+      },
+      {
+        $set: {
+          password: passwordHash,
+          updated_at: new Date(),
+        },
+        $unset: {
+          resetToken: "",
+          resetTokenExpiresAt: "",
+        },
+      },
+      { returnDocument: "after" },
+    );
+    if (!result) return null;
+
+    return {
+      userId: result._id,
+    };
+  }
+
   async findById(id) {
     return await this.User.findOne({
       _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
     });
+  }
+  async findOne(filter) {
+    return await this.User.findOne(filter);
   }
 
   async find(filter) {
@@ -118,8 +187,6 @@ class UserService {
     );
     return result;
   }
-
-  async updateStatus(id, status) {}
 
   async delete(id) {
     const result = await this.User.findOneAndDelete({
