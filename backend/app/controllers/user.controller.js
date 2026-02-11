@@ -1,4 +1,4 @@
-const UserService = require("../services/user.service");
+const UserService = require("../services/users.service");
 const MongoDB = require("../utils/mongodb.util");
 const { sendActivationEmail } = require("../utils/mailer.util");
 const ApiError = require("../api-error");

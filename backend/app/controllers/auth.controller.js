@@ -1,8 +1,7 @@
 const MongoDB = require("../utils/mongodb.util");
 const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
 const ApiError = require("../api-error");
-const UserService = require("../services/user.service");
+const UserService = require("../services/users.service");
 const { sendResetPasswordEmail } = require("../utils/mailer.util");
 
 exports.login = async (req, res, next) => {
