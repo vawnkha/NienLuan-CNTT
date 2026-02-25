@@ -6,7 +6,7 @@ class CategoriesService {
     this.Category.createIndex({ slug: 1 }, { unique: true });
     this.Category.createIndex({ created_at: -1 });
   }
-  extractData(payload) {
+  extractCreate(payload) {
     const category = {
       name: payload.name,
       slug: payload.slug,
@@ -16,15 +16,29 @@ class CategoriesService {
       updated_at: new Date(),
     };
     Object.keys(category).forEach(
-      (key) => category[key] === undefined && delete category[key],
+      (k) => category[k] === undefined && delete category[k],
+    );
+    return category;
+  }
+
+  extractUpdate(payload) {
+    const category = {
+      name: payload.name,
+      slug: payload.slug,
+      description: payload.description,
+      image_url: payload.image_url,
+      updated_at: new Date(),
+    };
+    Object.keys(category).forEach(
+      (k) => category[k] === undefined && delete category[k],
     );
     return category;
   }
 
   async create(payload) {
-    const data = this.extractData(payload);
+    const data = this.extractCreate(payload);
     const result = await this.Category.insertOne(data);
-    return result;
+    return { insertedId: result.insertedId, ...data };
   }
 
   async find(filter) {
@@ -52,7 +66,7 @@ class CategoriesService {
     const filter = {
       _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
     };
-    const update = this.extractData(payload);
+    const update = this.extractUpdate(payload);
     const result = await this.Category.findOneAndUpdate(
       filter,
       { $set: update },

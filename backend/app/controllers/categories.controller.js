@@ -1,22 +1,56 @@
+const fs = require("fs");
+const path = require("path");
 const ApiError = require("../api-error");
 const CategoryService = require("../services/categories.service");
 const MongoDB = require("../utils/mongodb.util");
 
-exports.create = async (req, res, next) => {
-  if (!req.body?.name) {
-    return next(new ApiError(400, "Tên danh mục không được để trống"));
-  }
+async function safeDeleteLocalImage(imageUrl) {
+  if (!imageUrl || typeof imageUrl !== "string") return;
+  if (!imageUrl.startsWith("/uploads/")) return;
 
+  const relative = imageUrl.replace(/^\/uploads\//, "");
+  const filePath = path.join(process.cwd(), "public/uploads", relative);
   try {
-    const categoryService = new CategoryService(MongoDB.client);
-    const existed = await categoryService.findBySlug(req.body.slug);
-    if (existed) {
-      return next(new ApiError(400, "Slug danh mục đã được sử dụng"));
-    }
-    const result = await categoryService.create(req.body);
-    return res.send({ message: "Tạo danh mục thành công" });
+    await fs.promises.unlink(filePath);
   } catch (error) {
-    return next(new ApiError(500, "Lỗi khi tạo danh mục"));
+    return next(new ApiError(500, "Lỗi khi xóa ảnh cũ"));
+  }
+}
+
+exports.create = async (req, res, next) => {
+  try {
+    const { name, slug, description } = req.body;
+
+    if (!name || !slug) {
+      return next(new ApiError(400, "name và slug là bắt buộc"));
+    }
+
+    if (!req.file) {
+      return next(
+        new ApiError(400, "Vui lòng chọn 1 ảnh đại diện (field: image)"),
+      );
+    }
+
+    const service = new CategoryService(MongoDB.client);
+
+    const existedSlug = await service.findBySlug(slug);
+    if (existedSlug) return next(new ApiError(400, "Slug đã tồn tại"));
+
+    const image_url = `/uploads/categories/${req.file.filename}`;
+
+    const created = await service.create({
+      name,
+      slug,
+      description,
+      image_url,
+    });
+
+    return res.status(201).send({
+      message: "Tạo danh mục thành công",
+      data: created,
+    });
+  } catch (err) {
+    return next(new ApiError(400, err.message || "Lỗi tạo danh mục"));
   }
 };
 
