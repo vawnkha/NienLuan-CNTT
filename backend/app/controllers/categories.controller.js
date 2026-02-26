@@ -12,9 +12,7 @@ async function safeDeleteLocalImage(imageUrl) {
   const filePath = path.join(process.cwd(), "public/uploads", relative);
   try {
     await fs.promises.unlink(filePath);
-  } catch (error) {
-    return next(new ApiError(500, "Lỗi khi xóa ảnh cũ"));
-  }
+  } catch (_) {}
 }
 
 exports.create = async (req, res, next) => {
@@ -92,10 +90,33 @@ exports.update = async (req, res, next) => {
     if (!existed) {
       return next(new ApiError(404, "Danh mục không tồn tại"));
     }
-    const result = await categoryService.update(req.params.id, req.body);
-    return res.send({ message: "Cập nhật danh mục thành công" });
+    const payload = {
+      name: req.body.name,
+      slug: req.body.slug,
+      description: req.body.description,
+    };
+
+    if (payload.slug && payload.slug !== existed.slug) {
+      const check = await categoryService.findBySlug(payload.slug);
+      if (check) {
+        return next(new ApiError(400, "Slug đã tồn tại"));
+      }
+    }
+    if (req.file) {
+      await safeDeleteLocalImage(existed.image_url);
+      payload.image_url = `/uploads/categories/${req.file.filename}`;
+    }
+
+    const result = await categoryService.update(req.params.id, payload);
+    if (!result) {
+      return next(new ApiError(500, "Lỗi khi cập nhật danh mục"));
+    }
+    return res.send({
+      message: "Cập nhật danh mục thành công",
+      data: result,
+    });
   } catch (error) {
-    return next(new ApiError(500, "Lỗi khi cập nhật danh mục"));
+    return next(new ApiError(400, err.message || "Lỗi cập nhật danh mục"));
   }
 };
 
@@ -106,6 +127,7 @@ exports.delete = async (req, res, next) => {
     if (!existed) {
       return next(new ApiError(404, "Danh mục không tồn tại"));
     }
+    await safeDeleteLocalImage(existed.image_url);
     await categoryService.delete(req.params.id);
     return res.send({ message: "Xóa danh mục thành công" });
   } catch (error) {

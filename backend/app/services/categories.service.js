@@ -41,8 +41,8 @@ class CategoriesService {
     return { insertedId: result.insertedId, ...data };
   }
 
-  async find(filter) {
-    const cursor = await this.Category.find(filter);
+  async find(filter = {}, options = {}) {
+    const cursor = await this.Category.find(filter, options);
     return await cursor.toArray();
   }
 
@@ -72,7 +72,7 @@ class CategoriesService {
       { $set: update },
       { returnDocument: "after" },
     );
-    return result.value;
+    return result;
   }
 
   async delete(id) {
