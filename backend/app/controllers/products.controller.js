@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const ApiError = require("../api-error");
 const ProductsService = require("../services/products.service");
+const CategoryService = require("../services/categories.service");
 const MongoDB = require("../utils/mongodb.util");
 
 async function safeDeleteLocalImage(imageUrl) {
@@ -26,10 +27,8 @@ function buildUrl(file) {
 
 exports.create = async (req, res, next) => {
   try {
-    const { name, slug, category_id, price, stock, unit, description } =
-      req.body;
-    if (!name || !slug)
-      return next(new ApiError(400, "name và slug là bắt buộc"));
+    const { name, category_id, price, stock, unit, description } = req.body;
+    if (!name) return next(new ApiError(400, "name là bắt buộc"));
     if (!category_id) return next(new ApiError(400, "category_id là bắt buộc"));
 
     const thumbFile = req.files?.thumbnail?.[0];
@@ -40,20 +39,11 @@ exports.create = async (req, res, next) => {
     if (imageFiles.length > 4)
       return next(new ApiError(400, "Images tối đa 4 ảnh"));
     const service = new ProductsService(MongoDB.client);
-    const existedSlug = await service.findBySlug(slug);
-    if (existedSlug) {
-      await safeDeleteLocalImages([
-        buildUrl(thumbFile),
-        ...imageFiles.map(buildUrl),
-      ]);
-      return next(new ApiError(400, "Slug đã tồn tại"));
-    }
     const thumbnail = buildUrl(thumbFile);
     const images = imageFiles.map(buildUrl);
 
     const created = await service.create({
       name,
-      slug,
       category_id,
       price,
       stock,
@@ -72,19 +62,38 @@ exports.create = async (req, res, next) => {
 };
 
 exports.findAll = async (req, res, next) => {
-  let documents = [];
   try {
     const productService = new ProductsService(MongoDB.client);
-    const { name } = req.query;
-    if (name) {
-      documents = await productService.findByName(name);
-    } else {
-      documents = await productService.find({});
+
+    if (req.query.category_slug) {
+      const categoryService = new CategoryService(MongoDB.client);
+      const cat = await categoryService.findBySlug(req.query.category_slug);
+      if (!cat) {
+        return res.send({
+          data: [],
+          pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
+        });
+      }
+      req.query.category_id = String(cat._id);
     }
+    const result = await productService.search(req.query);
+    return res.send(result);
   } catch (error) {
     return next(new ApiError(500, "Lỗi khi truy xuất sản phẩm"));
   }
-  return res.send(documents);
+};
+
+exports.findByCategory = async (req, res, next) => {
+  try {
+    const productService = new ProductsService(MongoDB.client);
+    const result = await productService.findByCategoryId(
+      req.params.categoryId,
+      req.query,
+    );
+    return res.send(result);
+  } catch (error) {
+    return next(new ApiError(500, "Lỗi khi truy xuất sản phẩm"));
+  }
 };
 
 exports.findOne = async (req, res, next) => {
@@ -119,20 +128,12 @@ exports.update = async (req, res, next) => {
 
     const payload = {
       name: req.body.name,
-      slug: req.body.slug,
       category_id: req.body.category_id,
       price: req.body.price,
       stock: req.body.stock,
       unit: req.body.unit,
       description: req.body.description,
     };
-    if (payload.slug && payload.slug !== existed.slug) {
-      const check = await productService.findBySlug(payload.slug);
-      if (check) {
-        await cleanUploadedFiles(req);
-        return next(new ApiError(400, "Slug đã tồn tại"));
-      }
-    }
     const newThumbFile = req.files?.thumbnail?.[0];
     const newImageFiles = req.files?.images || [];
     if (newImageFiles.length > 4) {

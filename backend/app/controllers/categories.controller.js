@@ -71,7 +71,7 @@ exports.findAll = async (req, res, next) => {
 exports.findOne = async (req, res, next) => {
   try {
     const categoryService = new CategoryService(MongoDB.client);
-    const document = await categoryService.findById(req.params.id);
+    const document = await categoryService.findBySlug(req.params.slug);
     if (!document) {
       return next(new ApiError(404, "Danh mục không tồn tại"));
     }

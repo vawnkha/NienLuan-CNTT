@@ -2,9 +2,9 @@ const express = require("express");
 const router = express.Router();
 const products = require("../controllers/products.controller");
 const uploadProductImage = require("../middlewares/product-upload.middleware");
-const { route } = require("./categories.route");
 
 router.get("/", products.findAll);
+router.get("/category/:categoryId", products.findByCategory);
 router.get("/:id", products.findOne);
 router.post(
   "/",
