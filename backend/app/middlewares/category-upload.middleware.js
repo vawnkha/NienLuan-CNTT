@@ -3,6 +3,9 @@ const path = require("path");
 const ApiError = require("../api-error");
 
 const uploadDir = path.join(__dirname, "../../public/uploads/categories");
+try {
+  fs.mkdirSync(uploadDir, { recursive: true });
+} catch (_) {}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
