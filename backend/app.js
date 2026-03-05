@@ -5,6 +5,7 @@ const userRoute = require("./app/routes/user.route");
 const categoryRoute = require("./app/routes/categories.route");
 const productRoute = require("./app/routes/products.route");
 const addressRoute = require("./app/routes/addresses.route");
+const cartRoute = require("./app/routes/carts.route");
 const loginRoute = require("./app/routes/auth.route");
 const ApiError = require("./app/api-error");
 
@@ -19,6 +20,7 @@ app.use("/api/users", userRoute);
 app.use("/api/categories", categoryRoute);
 app.use("/api/products", productRoute);
 app.use("/api/addresses", addressRoute);
+app.use("/api/carts", cartRoute);
 app.use("/api/auth", loginRoute);
 
 app.get("/", (req, res) => {
