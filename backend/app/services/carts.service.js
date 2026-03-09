@@ -85,11 +85,50 @@ class CartService {
       );
       return { ok: true };
     }
-    await this.Cart.updateOne(
-      { user_id: uid, "items.product_id": pid },
-      { $set: { "items.$.quantity": q, updated_at: new Date() } },
+
+    const product = await this.Product.findOne(
+      { _id: pid },
+      { projection: { name: 1, stock: 1 } },
     );
-    return { ok: true };
+
+    if (!product) {
+      return { error: "Sản phẩm không tồn tại" };
+    }
+
+    const stock = Number(product.stock || 0);
+
+    if (stock <= 0) {
+      return { error: "Sản phẩm đã hết hàng" };
+    }
+
+    if (q > stock) {
+      return {
+        error: `Số lượng vượt tồn kho. Hiện chỉ còn ${stock} sản phẩm.`,
+        stock,
+        requestedQty: q,
+      };
+    }
+
+    const rs = await this.Cart.updateOne(
+      {
+        user_id: uid,
+        items: {
+          $elemMatch: {
+            product_id: pid,
+          },
+        },
+      },
+      {
+        $set: {
+          "items.$.quantity": q,
+          updated_at: new Date(),
+        },
+      },
+    );
+    if (rs.matchedCount === 0) {
+      return { error: "Sản phẩm chưa có trong giỏ hàng" };
+    }
+    return { ok: true, stock, quantity: q };
   }
 
   async removeItem(userId, productId) {
