@@ -1,14 +1,28 @@
-<script>
-export default {};
+<script setup>
+import { onMounted } from "vue";
+import { useAuthStore } from "./stores/user/auth";
+import { useCartStore } from "./stores/user/cart";
+import { useWishlistStore } from "./stores/user/wishlist";
+
+const authStore = useAuthStore();
+const cartStore = useCartStore();
+const wishlistStore = useWishlistStore();
+
+onMounted(async () => {
+  if (!authStore.userId) return;
+
+  try {
+    await authStore.fetchProfile();
+    await Promise.all([
+      cartStore.fetchCart(authStore.userId),
+      wishlistStore.fetchWishlist(authStore.userId),
+    ]);
+  } catch (error) {
+    console.log(error.message);
+  }
+});
 </script>
 
 <template>
-  <h1>Hello, Vue.js</h1>
+  <router-view />
 </template>
-
-<style>
-.page {
-  max-width: 400px;
-  margin: auto;
-}
-</style>

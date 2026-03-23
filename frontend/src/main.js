@@ -1,4 +1,17 @@
-import { createApp } from 'vue'
-import App from './App.vue'
+import { createApp } from "vue";
+import { createPinia } from "pinia";
+import App from "./App.vue";
+import "@fortawesome/fontawesome-free/css/all.min.css";
+import router from "./router";
 
-createApp(App).mount('#app')
+import "@/assets/css/user/style.css";
+import "@/assets/css/user/responsive.css";
+
+const app = createApp(App);
+
+const pinia = createPinia();
+
+app.use(pinia);
+app.use(router);
+
+app.mount("#app");

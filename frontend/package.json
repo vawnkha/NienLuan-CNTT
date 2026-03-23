@@ -10,10 +10,13 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.1.0",
+    "@vueform/slider": "^2.1.10",
     "axios": "^1.13.4",
     "bootstrap": "^4.6.2",
     "jquery": "^3.7.1",
+    "pinia": "^3.0.4",
     "popper.js": "^1.16.1",
+    "swiper": "^12.1.2",
     "vee-validate": "^4.15.1",
     "vue": "^3.5.27",
     "vue-router": "^4.6.4",
