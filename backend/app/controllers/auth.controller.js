@@ -67,8 +67,9 @@ exports.forgotPassword = async (req, res, next) => {
       return next(new ApiError(404, "Người dùng với email này không tồn tại"));
     }
 
-    const baseUrl = process.env.FRONTEND_BASE_URL || "http://localhost:3000";
-    const resetLink = `${baseUrl}/api/auth/reset-password/${info.userId}/${info.rawToken}`;
+    const frontendBaseUrl =
+      process.env.FRONTEND_BASE_URL || "http://localhost:3001";
+    const resetLink = `${frontendBaseUrl}/reset-password/${info.userId}/${info.rawToken}`;
 
     await sendResetPasswordEmail({
       to: info.email,

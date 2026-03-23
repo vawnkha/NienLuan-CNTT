@@ -14,8 +14,7 @@ class AddressService {
           ? new ObjectId(payload.user_id)
           : null
         : undefined,
-      first_name: payload.first_name,
-      last_name: payload.last_name,
+      full_name: payload.full_name,
       phone: payload.phone,
       address_line: payload.address_line,
       city: payload.city,
@@ -54,8 +53,7 @@ class AddressService {
       _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
     };
     const update = {
-      first_name: payload.first_name,
-      last_name: payload.last_name,
+      full_name: payload.full_name,
       phone: payload.phone,
       address_line: payload.address_line,
       city: payload.city,

@@ -2,10 +2,14 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const userRoute = require("./app/routes/user.route");
+const wishlistRoute = require("./app/routes/wishlist.route");
 const categoryRoute = require("./app/routes/categories.route");
 const productRoute = require("./app/routes/products.route");
+const reviewRoute = require("./app/routes/reviews.route");
 const addressRoute = require("./app/routes/addresses.route");
 const cartRoute = require("./app/routes/carts.route");
+const orderRoute = require("./app/routes/orders.route");
+const paymentRoute = require("./app/routes/payments.route");
 const loginRoute = require("./app/routes/auth.route");
 const ApiError = require("./app/api-error");
 
@@ -17,10 +21,14 @@ app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
 app.use("/api/users", userRoute);
+app.use("/api/wishlists", wishlistRoute);
 app.use("/api/categories", categoryRoute);
 app.use("/api/products", productRoute);
+app.use("/api/reviews", reviewRoute);
 app.use("/api/addresses", addressRoute);
-app.use("/api/carts", cartRoute);
+app.use("/api/cart", cartRoute);
+app.use("/api/order", orderRoute);
+app.use("/api/payment", paymentRoute);
 app.use("/api/auth", loginRoute);
 
 app.get("/", (req, res) => {

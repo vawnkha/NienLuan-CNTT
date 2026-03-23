@@ -1,85 +1,75 @@
-const ApiError = require("../api-error");
+const axios = require("axios");
 
-function getPayPalBaseUrl() {
-  const mode = (process.env.PAYPAL_MODE || "sandbox").toLowerCase();
-  return mode === "live"
-    ? "https://api-m.paypal.com"
-    : "https://api-m.sandbox.paypal.com";
-}
+const BASE_URL =
+  process.env.PAYPAL_BASE_URL || "https://api-m.sandbox.paypal.com";
 
 async function getAccessToken() {
   const clientId = process.env.PAYPAL_CLIENT_ID;
-  const secret = process.env.PAYPAL_CLIENT_SECRET;
-  if (!clientId || !secret) {
-    throw new ApiError(500, "Thiếu PAYPAL_CLIENT_ID hoặc PAYPAL_CLIENT_SECRET");
-  }
-  const base = getPayPalBaseUrl();
-  const auth = Buffer.from(`${clientId}:${secret}`).toString("base64");
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
 
-  const resp = await fetch(`${base}/v1/oauth2/token`, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${auth}`,
-      "Content-Type": "application/X-www-form-urlencoded",
+  const response = await axios.post(
+    `${BASE_URL}/v1/oauth2/token`,
+    "grant_type=client_credentials",
+    {
+      auth: {
+        username: clientId,
+        password: clientSecret,
+      },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
     },
-    body: "grant_type=client_credentials",
-  });
+  );
 
-  const data = await resp.json();
-  if (!resp.ok) {
-    throw new ApiError(
-      500,
-      data?.error_description || "Không lấy được Paypal access token",
-    );
-  }
-  return data;
+  return response.data.access_token;
 }
 
-async function paypalCreateOrder({ total, currency = "VND", referenceId }) {
-  const base = getPayPalBaseUrl();
-  const token = await getAccessToken();
+async function paypalCreateOrder({ total, currency = "USD", referenceId }) {
+  const accessToken = await getAccessToken();
 
-  const resp = await fetch(`${base}/v2/checkout/orders`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  const response = await axios.post(
+    `${BASE_URL}/v2/checkout/orders`,
+    {
       intent: "CAPTURE",
       purchase_units: [
         {
-          reference_id: referenceId || "ORDER",
-          amount: { currency_code: currency, value: Number(total).toFixed(2) },
+          reference_id: referenceId,
+          amount: {
+            currency_code: currency,
+            value: String(total),
+          },
         },
       ],
-    }),
-  });
-
-  const data = await resp.json();
-  if (!resp.ok)
-    throw new ApiError(500, data?.message || "Tạo PayPal order thất bại");
-  return data;
-}
-
-async function paypalCaptureOrder(paypalOrderId) {
-  const base = getPayPalBaseUrl();
-  const token = await getAccessToken();
-
-  const resp = await fetch(
-    `${base}/v2/checkout/orders/${paypalOrderId}/capture`,
+    },
     {
-      method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
     },
   );
-  const data = await resp.json();
-  if (!resp.ok)
-    throw new ApiError(500, data?.message || "Capture PayPal order thất bại");
-  return data;
+
+  return response.data;
 }
 
-module.exports = { paypalCaptureOrder, paypalCreateOrder };
+async function paypalCaptureOrder(paypalOrderId) {
+  const accessToken = await getAccessToken();
+
+  const response = await axios.post(
+    `${BASE_URL}/v2/checkout/orders/${paypalOrderId}/capture`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+  return response.data;
+}
+
+module.exports = {
+  paypalCreateOrder,
+  paypalCaptureOrder,
+};

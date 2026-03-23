@@ -12,8 +12,9 @@ class ProductsService {
   normalizeImages(images) {
     if (!images) return [];
     if (Array.isArray(images)) return images.filter(Boolean);
-    if (typeof images === "string" && images.trim() !== "")
+    if (typeof images === "string" && images.trim() !== "") {
       return [images.trim()];
+    }
     return [];
   }
 
@@ -53,8 +54,8 @@ class ProductsService {
           ? new ObjectId(payload.category_id)
           : null
         : undefined,
-      price: payload.price,
-      stock: payload.stock,
+      price: Number(payload.price || 0),
+      stock: Number(payload.stock || 0),
       status: this.compluteStatus(payload.stock),
       unit: payload.unit,
       description: payload.description,
@@ -67,9 +68,11 @@ class ProductsService {
       created_at: new Date(),
       updated_at: new Date(),
     };
-    Object.keys(product).forEach(
-      (key) => product[key] === undefined && delete product[key],
-    );
+
+    Object.keys(product).forEach((key) => {
+      if (product[key] === undefined) delete product[key];
+    });
+
     return product;
   }
 
@@ -81,8 +84,8 @@ class ProductsService {
           ? new ObjectId(payload.category_id)
           : null
         : undefined,
-      price: payload.price,
-      stock: payload.stock,
+      price: Number(payload.price || 0),
+      stock: Number(payload.stock || 0),
       status: payload.status,
       unit: payload.unit,
       description: payload.description,
@@ -92,20 +95,25 @@ class ProductsService {
         : [],
       updated_at: new Date(),
     };
+
     const nextName = payload.name;
     const nextDescription = payload.description;
+
     if (nextName !== undefined || nextDescription !== undefined) {
       product.search_text = this.buildSerchText({
         name: nextName ?? "",
         description: nextDescription ?? "",
       });
     }
+
     if (payload.stock !== undefined) {
       product.status = this.compluteStatus(payload.stock);
     }
-    Object.keys(product).forEach(
-      (key) => product[key] === undefined && delete product[key],
-    );
+
+    Object.keys(product).forEach((key) => {
+      if (product[key] === undefined) delete product[key];
+    });
+
     return product;
   }
 
@@ -130,18 +138,141 @@ class ProductsService {
     });
   }
 
+  buildSearchFilter(query = {}) {
+    const q = (query.q || query.name || "").trim();
+    const categoryId = query.category_id;
+    const filter = {};
+
+    if (q) {
+      const n = this.normalizeText(q);
+      const noSpace = n.replace(/\s/g, "");
+      const tokens = n.split(" ").filter(Boolean);
+
+      const p1 = new RegExp(this.escapeRegex(n), "i");
+      const p2 = new RegExp(this.escapeRegex(noSpace), "i");
+      const p3 = tokens.map((t) => new RegExp(this.escapeRegex(t), "i"));
+
+      let pFuzzy = null;
+      if (noSpace.length >= 2 && noSpace.length <= 30) {
+        const fuzzy = noSpace.split("").map(this.escapeRegex).join(".*");
+        pFuzzy = new RegExp(fuzzy, "i");
+      }
+
+      filter.$or = [
+        { search_text: { $regex: p1 } },
+        { search_text: { $regex: p2 } },
+        ...(pFuzzy ? [{ search_text: { $regex: pFuzzy } }] : []),
+      ];
+
+      if (tokens.length > 1) {
+        filter.$or.push({
+          $and: p3.map((rx) => ({
+            search_text: { $regex: rx },
+          })),
+        });
+      } else {
+        filter.$or.push(...p3.map((rx) => ({ search_text: { $regex: rx } })));
+      }
+    }
+
+    if (categoryId !== undefined && categoryId !== "") {
+      filter.category_id = ObjectId.isValid(categoryId)
+        ? new ObjectId(categoryId)
+        : null;
+    }
+
+    return filter;
+  }
+
+  buildPopulatePipeline({ match = {}, skip = 0, limit = 10 } = {}) {
+    return [
+      { $match: match },
+      { $sort: { created_at: -1 } },
+
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category_id",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $unwind: {
+          path: "$category",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      {
+        $lookup: {
+          from: "reviews",
+          let: { productId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$product_id", "$$productId"] },
+              },
+            },
+            {
+              $group: {
+                _id: "$product_id",
+                total_reviews: { $sum: 1 },
+                average_rating: { $avg: "$rating" },
+              },
+            },
+          ],
+          as: "review_stats",
+        },
+      },
+      {
+        $unwind: {
+          path: "$review_stats",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      {
+        $addFields: {
+          category_name: "$category.name",
+          category_slug: "$category.slug",
+          average_rating: {
+            $ifNull: [{ $round: ["$review_stats.average_rating", 1] }, 0],
+          },
+          total_reviews: {
+            $ifNull: ["$review_stats.total_reviews", 0],
+          },
+        },
+      },
+
+      {
+        $project: {
+          review_stats: 0,
+          search_text: 0,
+        },
+      },
+
+      { $skip: skip },
+      { $limit: limit },
+    ];
+  }
+
   async findByCategoryId(categoryId, query = {}) {
     const category_id = ObjectId.isValid(categoryId)
       ? new ObjectId(categoryId)
       : null;
+
     const { page, limit, skip } = buildPagination(query);
     const filter = { category_id };
     const total = await this.count(filter);
-    const data = await this.Product.find(filter)
-      .sort({ created_at: -1 })
-      .skip(skip)
-      .limit(limit)
-      .toArray();
+
+    const data = await this.Product.aggregate(
+      this.buildPopulatePipeline({
+        match: filter,
+        skip,
+        limit,
+      }),
+    ).toArray();
 
     return {
       data,
@@ -156,41 +287,17 @@ class ProductsService {
 
   async search(query = {}) {
     const { page, limit, skip } = buildPagination(query);
-
-    const q = (query.q || query.name || "").trim();
-    const categoryId = query.category_id;
-    const filter = {};
-    if (q) {
-      const n = this.normalizeText(q);
-      const noSpace = n.replace(/\s/g, "");
-      const tokens = n.split(" ").filter(Boolean);
-
-      const p1 = new RegExp(this.escapeRegex(n), "i");
-      const p2 = new RegExp(this.escapeRegex(noSpace), "i");
-      const p3 = tokens.map((t) => new RegExp(this.escapeRegex(t), "i"));
-      let pFuzzy = null;
-      if (noSpace.length >= 2 && noSpace.length <= 30) {
-        const fuzzy = noSpace.split("").map(this.escapeRegex).join(".*");
-        pFuzzy = new RegExp(fuzzy, "i");
-      }
-      filter.$or = [
-        { search_text: { $regex: p1 } },
-        { search_text: { $regex: p2 } },
-        ...(pFuzzy ? [{ search_text: { $regex: pFuzzy } }] : []),
-        ...p3.map((rx) => ({ search_text: { $regex: rx } })),
-      ];
-    }
-    if (categoryId !== undefined && categoryId !== "") {
-      filter.category_id = ObjectId.isValid(categoryId)
-        ? new ObjectId(categoryId)
-        : null;
-    }
+    const filter = this.buildSearchFilter(query);
     const total = await this.count(filter);
-    const data = await this.Product.find(filter)
-      .sort({ created_at: -1 })
-      .skip(skip)
-      .limit(limit)
-      .toArray();
+
+    const data = await this.Product.aggregate(
+      this.buildPopulatePipeline({
+        match: filter,
+        skip,
+        limit,
+      }),
+    ).toArray();
+
     return {
       data,
       pagination: {
@@ -203,21 +310,120 @@ class ProductsService {
   }
 
   async findById(id) {
-    return this.Product.findOne({
-      _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
-    });
+    const _id = ObjectId.isValid(id) ? new ObjectId(id) : null;
+
+    const result = await this.Product.aggregate([
+      { $match: { _id } },
+
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category_id",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $unwind: {
+          path: "$category",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      {
+        $lookup: {
+          from: "reviews",
+          let: { productId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$product_id", "$$productId"] },
+              },
+            },
+            { $sort: { created_at: -1 } },
+            {
+              $lookup: {
+                from: "users",
+                localField: "user_id",
+                foreignField: "_id",
+                as: "user",
+              },
+            },
+            {
+              $unwind: {
+                path: "$user",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+                user_id: 1,
+                product_id: 1,
+                rating: 1,
+                comment: 1,
+                created_at: 1,
+                user_name: "$user.name",
+                user_email: "$user.email",
+                user_avatar: "$user.avatar_url",
+              },
+            },
+          ],
+          as: "reviews",
+        },
+      },
+
+      {
+        $addFields: {
+          category_name: "$category.name",
+          category_slug: "$category.slug",
+          total_reviews: { $size: "$reviews" },
+          average_rating: {
+            $cond: [
+              { $gt: [{ $size: "$reviews" }, 0] },
+              {
+                $round: [
+                  {
+                    $avg: {
+                      $map: {
+                        input: "$reviews",
+                        as: "review",
+                        in: "$$review.rating",
+                      },
+                    },
+                  },
+                  1,
+                ],
+              },
+              0,
+            ],
+          },
+        },
+      },
+
+      {
+        $project: {
+          search_text: 0,
+        },
+      },
+    ]).toArray();
+
+    return result[0] || null;
   }
 
   async update(id, payload) {
     const filter = {
       _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
     };
+
     const update = this.extractUpdateData(payload);
+
     const result = await this.Product.findOneAndUpdate(
       filter,
       { $set: update },
       { returnDocument: "after" },
     );
+
     return result;
   }
 
@@ -227,71 +433,6 @@ class ProductsService {
     });
     return result;
   }
-
-  // async addImages(id, imageUrls = []) {
-  //   const imgs = (this.normalizeImages(imageUrls) || []).slice(0, 4);
-  //   if (imgs.length === 0) return null;
-  //   const filter = {
-  //     _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
-  //     $expr: {
-  //       $lte: [
-  //         { $add: [{ $size: { $ifNull: ["$images", []] } }, imgs.length] },
-  //         4,
-  //       ],
-  //     },
-  //   };
-  //   const result = await this.Product.findOneAndUpdate(
-  //     filter,
-  //     { $push: { images: { $each: imgs } }, $set: { updated_at: new Date() } },
-  //     { returnDocument: "after" },
-  //   );
-  //   return result;
-  // }
-
-  // async removeImage(id, imageUrl) {
-  //   const filter = {
-  //     _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
-  //   };
-  //   return await this.Product.findOneAndUpdate(
-  //     filter,
-  //     { $pull: { images: imageUrl }, $set: { updated_at: new Date() } },
-  //     { returnDocument: "after" },
-  //   );
-  // }
-
-  // async swapImange(id, oldUrl, newUrl) {
-  //   const filter = {
-  //     _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
-  //     images: oldUrl,
-  //   };
-  //   return await this.Product.findOneAndUpdate(
-  //     filter,
-  //     { $set: { "images.$": newUrl, updated_at: new Date() } },
-  //     { returnDocument: "after" },
-  //   );
-  // }
-
-  // async replaceImages(id, imanges) {
-  //   const filter = {
-  //     _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
-  //   };
-  //   const imgs = this.normalizeImages(images).slice(0, 4);
-  //   return await this.Product.findOneAndUpdate(
-  //     filter,
-  //     { $set: { images: imgs, updated_at: new Date() } },
-  //     { returnDocument: "after" },
-  //   );
-  // }
-
-  // async updateThumbnail(id, thumbnailUrl) {
-  //   const filter = {
-  //     _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
-  //   };
-  //   return await this.Product.findOneAndUpdate(
-  //     filter,
-  //     { $set: { thumbnail: thumbnailUrl, updated_at: new Date() } },
-  //     { returnDocument: "after" },
-  //   );
-  // }
 }
+
 module.exports = ProductsService;

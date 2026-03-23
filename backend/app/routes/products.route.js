@@ -4,6 +4,7 @@ const products = require("../controllers/products.controller");
 const uploadProductImage = require("../middlewares/product-upload.middleware");
 
 router.get("/", products.findAll);
+router.get("/search", products.search);
 router.get("/category/:categoryId", products.findByCategory);
 router.get("/:id", products.findOne);
 router.post(

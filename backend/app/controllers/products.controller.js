@@ -182,3 +182,34 @@ exports.delete = async (req, res, next) => {
     return next(new ApiError(500, "Lỗi khi xóa sản phẩm"));
   }
 };
+
+exports.search = async (req, res, next) => {
+  try {
+    const productService = new ProductsService(MongoDB.client);
+
+    if (req.query.category_slug) {
+      const categoryService = new CategoryService(MongoDB.client);
+      const cat = await categoryService.findBySlug(req.query.category_slug);
+
+      if (!cat) {
+        return res.send({
+          message: "Tìm kiếm sản phẩm thành công",
+          data: [],
+          pagination: { page: 1, limit: 12, total: 0, totalPages: 0 },
+        });
+      }
+
+      req.query.category_id = String(cat._id);
+    }
+
+    const result = await productService.search(req.query);
+    return res.send({
+      message: "Tìm kiếm sản phẩm thành công",
+      ...result,
+    });
+  } catch (error) {
+    return next(
+      new ApiError(500, error.message || "Lỗi khi tìm kiếm sản phẩm"),
+    );
+  }
+};

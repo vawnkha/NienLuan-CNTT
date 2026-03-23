@@ -47,8 +47,8 @@ exports.create = async (req, res, next) => {
       message: "Tạo danh mục thành công",
       data: created,
     });
-  } catch (err) {
-    return next(new ApiError(400, err.message || "Lỗi tạo danh mục"));
+  } catch (error) {
+    return next(new ApiError(400, error.message || "Lỗi tạo danh mục"));
   }
 };
 
@@ -116,7 +116,7 @@ exports.update = async (req, res, next) => {
       data: result,
     });
   } catch (error) {
-    return next(new ApiError(400, err.message || "Lỗi cập nhật danh mục"));
+    return next(new ApiError(400, error.message || "Lỗi cập nhật danh mục"));
   }
 };
 

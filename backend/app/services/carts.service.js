@@ -161,7 +161,7 @@ class CartService {
 
     const ids = cart.items.map((i) => i.product_id);
     const products = await this.Product.find({ _id: { $in: ids } })
-      .project({ name: 1, price: 1, thumbnail: 1 })
+      .project({ name: 1, price: 1, thumbnail: 1, stock: 1, unit: 1 })
       .toArray();
     const map = new Map(products.map((p) => [String(p._id), p]));
     const items = cart.items

@@ -153,9 +153,12 @@ class UsersService {
   }
 
   async findById(id) {
-    return await this.User.findOne({
-      _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
-    });
+    return await this.User.findOne(
+      {
+        _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
+      },
+      { projection: { password: 0 } },
+    );
   }
   async findOne(filter) {
     return await this.User.findOne(filter);
