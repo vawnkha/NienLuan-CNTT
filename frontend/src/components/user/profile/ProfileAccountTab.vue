@@ -32,7 +32,12 @@ function handleAvatarChange(event) {
 <template>
   <div class="profile-content-box">
     <div class="account-avatar-wrap">
-      <img :src="userProfile.avatar" alt="Avatar" class="account-avatar" />
+      <img
+        :src="userProfile.avatar || '/img/avatar.jpg'"
+        @error="$event.target.src = '/img/avatar.jpg'"
+        alt="Avatar"
+        class="account-avatar"
+      />
 
       <div style="margin-top: 15px">
         <input

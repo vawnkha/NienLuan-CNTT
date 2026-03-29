@@ -6571,8 +6571,8 @@ input {
   [class~="product-image"] {
   display: flex;
   align-items: center;
-  width: 233px;
   height: 233px;
+  width: auto;
 }
 
 [class~="product-category-page"]
