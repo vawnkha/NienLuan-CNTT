@@ -30,11 +30,7 @@ const adminRoutes = [
         name: "admin-product-create",
         component: () => import("@/pages/admin/ProductCreatePage.vue"),
       },
-      {
-        path: "products/:id/edit",
-        name: "admin-product-edit",
-        component: () => import("@/pages/admin/ProductEditPage.vue"),
-      },
+
       {
         path: "categories",
         name: "admin-categories",
@@ -45,11 +41,7 @@ const adminRoutes = [
         name: "admin-category-create",
         component: () => import("@/pages/admin/CategoryCreatePage.vue"),
       },
-      {
-        path: "categories/:id/edit",
-        name: "admin-category-edit",
-        component: () => import("@/pages/admin/CategoryEditPage.vue"),
-      },
+
       {
         path: "orders",
         name: "admin-orders",
@@ -64,6 +56,16 @@ const adminRoutes = [
         path: "users",
         name: "admin-users",
         component: () => import("@/pages/admin/UserListPage.vue"),
+      },
+      {
+        path: "contacts",
+        name: "admin-contacts",
+        component: () => import("@/pages/admin/ContactsPage.vue"),
+      },
+      {
+        path: "notifications",
+        name: "admin-notifications",
+        component: () => import("@/pages/admin/NotificationsPage.vue"),
       },
     ],
   },

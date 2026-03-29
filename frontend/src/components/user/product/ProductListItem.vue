@@ -101,8 +101,8 @@ async function handleToggleWishlist() {
           </div>
 
           <div class="product-stock">
-            <i class="fa fa-check-square-o" aria-hidden="true"></i>
-            {{ product.stock > 0 ? "In stock" : "Out of stock" }}
+            <i class="fa-regular fa-square-check" aria-hidden="true"></i>
+            {{ product.stock > 0 ? "Còn hàng" : "Hết hàng" }}
           </div>
 
           <div class="product-description">

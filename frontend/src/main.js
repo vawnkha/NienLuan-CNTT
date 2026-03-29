@@ -4,11 +4,7 @@ import App from "./App.vue";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import router from "./router";
 
-import "@/assets/css/user/style.css";
-import "@/assets/css/user/responsive.css";
-
 const app = createApp(App);
-
 const pinia = createPinia();
 
 app.use(pinia);

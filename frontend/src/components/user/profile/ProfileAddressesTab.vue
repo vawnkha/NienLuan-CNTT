@@ -43,7 +43,7 @@ const emit = defineEmits([
               <span v-if="item.isDefault" class="default-badge">Mặc định</span>
               <button
                 v-else
-                class="btn btn-set-default"
+                class="btn btn-primary"
                 @click="$emit('set-default-address', item.id)"
               >
                 Chọn
@@ -61,7 +61,7 @@ const emit = defineEmits([
         </tbody>
       </table>
     </div>
-    <button class="btn btn-add-address" @click="$emit('open-address-modal')">
+    <button class="btn btn-primary" @click="$emit('open-address-modal')">
       Thêm địa chỉ mới
     </button>
   </div>

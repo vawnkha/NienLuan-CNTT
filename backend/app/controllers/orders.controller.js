@@ -31,6 +31,17 @@ exports.create = async (req, res, next) => {
   }
 };
 
+exports.findAll = async (req, res, next) => {
+  try {
+    const service = new OrdersService(MongoDB.client);
+    const docs = await service.findAll();
+
+    return res.send(docs);
+  } catch (error) {
+    return next(new ApiError(500, error.message || "Lỗi lấy tất cả đơn hàng"));
+  }
+};
+
 exports.findByUser = async (req, res, next) => {
   try {
     const { userId } = req.query;
@@ -107,6 +118,33 @@ exports.cancel = async (req, res, next) => {
       id,
       "canceled",
       "Người dùng hủy đơn hàng",
+    );
+
+    return res.send(doc);
+  } catch (error) {
+    return next(new ApiError(500, error.message || "Lỗi hủy đơn hàng"));
+  }
+};
+
+exports.complete = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const service = new OrdersService(MongoDB.client);
+    const current = await service.getOrderDetail(id);
+
+    if (!current) {
+      return next(new ApiError(404, "Đơn hàng không tồn tại"));
+    }
+
+    if (current.status !== "shipping") {
+      return next(new ApiError(400, "Chỉ được hủy đơn đang chờ xác nhận"));
+    }
+
+    const doc = await service.pushStatus(
+      id,
+      "completed",
+      "Xác nhận đã nhận đơn hàng",
     );
 
     return res.send(doc);

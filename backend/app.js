@@ -10,6 +10,7 @@ const addressRoute = require("./app/routes/addresses.route");
 const cartRoute = require("./app/routes/carts.route");
 const orderRoute = require("./app/routes/orders.route");
 const paymentRoute = require("./app/routes/payments.route");
+const contactRoute = require("./app/routes/contacts.route");
 const loginRoute = require("./app/routes/auth.route");
 const ApiError = require("./app/api-error");
 
@@ -29,6 +30,7 @@ app.use("/api/addresses", addressRoute);
 app.use("/api/cart", cartRoute);
 app.use("/api/order", orderRoute);
 app.use("/api/payment", paymentRoute);
+app.use("/api/contacts", contactRoute);
 app.use("/api/auth", loginRoute);
 
 app.get("/", (req, res) => {

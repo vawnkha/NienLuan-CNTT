@@ -10,6 +10,11 @@ class OrdersService {
     return res.data;
   }
 
+  async getAll() {
+    const res = await this.api.get("/all");
+    return res.data;
+  }
+
   async getByUser(userId) {
     const res = await this.api.get("/", {
       params: { userId },
@@ -24,6 +29,11 @@ class OrdersService {
 
   async cancel(id) {
     const res = await this.api.patch(`/${id}/cancel`);
+    return res.data;
+  }
+
+  async complete(id) {
+    const res = await this.api.patch(`/${id}/complete`);
     return res.data;
   }
 

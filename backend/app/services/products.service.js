@@ -84,15 +84,15 @@ class ProductsService {
           ? new ObjectId(payload.category_id)
           : null
         : undefined,
-      price: Number(payload.price || 0),
-      stock: Number(payload.stock || 0),
+      price: payload.price !== undefined ? Number(payload.price) : undefined,
+      stock: payload.stock !== undefined ? Number(payload.stock) : undefined,
       status: payload.status,
       unit: payload.unit,
       description: payload.description,
       thumbnail: payload.thumbnail,
       images: payload.images
         ? this.normalizeImages(payload.images).slice(0, 4)
-        : [],
+        : undefined,
       updated_at: new Date(),
     };
 

@@ -40,7 +40,7 @@ const emit = defineEmits(["change-password"]);
         />
       </div>
     </div>
-    <button class="btn btn-change-password" @click="$emit('change-password')">
+    <button class="btn btn-primary" @click="$emit('change-password')">
       ĐỔI MẬT KHẨU
     </button>
   </div>

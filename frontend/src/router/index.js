@@ -28,7 +28,7 @@ router.beforeEach((to, from, next) => {
 
   if (
     to.matched.some((record) => record.meta.requiresAdmin) &&
-    role !== "Admin"
+    role !== "admin"
   ) {
     return next("/");
   }
@@ -41,7 +41,7 @@ router.afterEach(() => {
   const { hideLoading } = useAppLoading();
   setTimeout(() => {
     hideLoading();
-  }, 1500);
+  }, 500);
 });
 
 export default router;

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useCartStore } from "@/stores/user/cart";
 import { useWishlistStore } from "@/stores/user/wishlist";
@@ -22,7 +22,7 @@ const loading = ref(false);
 const product = ref(null);
 const relatedProducts = ref([]);
 const reviews = ref([]);
-const reviewStats = ref({ total_reviews: 0, average_rating: 0 });
+const reviewStars = ref({ total_reviews: 0, average_rating: 0 });
 const canReview = ref(false);
 const canReviewMessage = ref("");
 const quantity = ref(1);
@@ -30,7 +30,7 @@ const selectedImage = ref("");
 const activeTab = ref("description");
 
 const reviewForm = reactive({
-  rating: 0,
+  rating: 5,
   comment: "",
 });
 
@@ -58,11 +58,20 @@ async function fetchProductDetail() {
     product.value = data;
     selectedImage.value = data.thumbnail || "";
 
-    reviews.value = data.reviews || [];
-    reviewStats.value = {
-      total_reviews: data.total_reviews || 0,
-      average_rating: data.average_rating || 0,
-    };
+    try {
+      const reviewRes = await reviewService.getByProduct(productId.value);
+      reviews.value = reviewRes.reviews || [];
+      reviewStars.value = reviewRes.stars || {
+        total_reviews: 0,
+        average_rating: 0,
+      };
+    } catch (error) {
+      reviews.value = [];
+      reviewStars.value = {
+        total_reviews: 0,
+        average_rating: 0,
+      };
+    }
 
     if (authStore.userId) {
       const permission = await reviewService.canReview(
@@ -91,7 +100,7 @@ async function fetchProductDetail() {
           ...(fallback.data || []).filter(
             (item) =>
               String(item._id) !== String(data._id) &&
-              !list.some((p) => p._id === item._id),
+              !list.some((p) => String(p._id) === String(item._id)),
           ),
         ];
       }
@@ -180,7 +189,7 @@ async function submitReview() {
       user_id: authStore.userId,
       product_id: productId.value,
       rating: reviewForm.rating,
-      comment: reviewForm.comment,
+      comment: reviewForm.comment.trim(),
     });
 
     reviewForm.rating = 5;
@@ -404,7 +413,7 @@ function printPage() {
                               :class="{
                                 on:
                                   star <=
-                                  Math.round(reviewStats.average_rating || 0),
+                                  Math.round(reviewStars.average_rating || 0),
                               }"
                             ></div>
                           </div>
@@ -528,7 +537,11 @@ function printPage() {
                     id="review"
                   >
                     <div class="reviews">
+                      <div v-if="reviews.length === 0" class="text-center py-3">
+                        Chưa có đánh giá nào cho sản phẩm này
+                      </div>
                       <div
+                        v-else
                         class="comments-list"
                         v-for="comment in reviews"
                         :key="comment.id"
@@ -537,10 +550,10 @@ function printPage() {
                           <div class="comment-left pull-left">
                             <div class="avatar">
                               <img
-                                src="/img/avatar.jpg"
-                                alt=""
-                                width="70"
-                                height="70"
+                                :src="comment.avatar || '/img/avatar.jpg'"
+                                :alt="comment.author || 'avatar'"
+                                width="90"
+                                height="90"
                               />
                             </div>
                             <div class="product-rating">
@@ -548,13 +561,18 @@ function printPage() {
                                 v-for="star in 5"
                                 :key="star"
                                 class="star"
-                                :class="{ on: star <= comment.rating }"
+                                :class="{
+                                  on: star <= Number(comment.rating || 0),
+                                }"
                               ></div>
                             </div>
                           </div>
                           <div class="comment-body">
                             <div class="comment-meta">
-                              <span class="author">{{ comment.author }}</span> -
+                              <span class="author">{{
+                                comment.author || "Người dùng"
+                              }}</span>
+                              -
                               <span class="time">{{ comment.time }}</span>
                             </div>
                             <div class="comment-content">
@@ -564,7 +582,13 @@ function printPage() {
                         </div>
                       </div>
 
-                      <div class="review-form">
+                      <div
+                        v-if="!canReview"
+                        class="review-note review-note-warning"
+                      >
+                        {{ canReviewMessage }}
+                      </div>
+                      <div v-else class="review-form">
                         <h4 class="title">Viết Đánh Giá</h4>
 
                         <form
@@ -597,11 +621,15 @@ function printPage() {
                               cols="45"
                               rows="6"
                               aria-required="true"
+                              :disabled="!canReview"
                             ></textarea>
                           </div>
 
                           <div class="form-group">
-                            <button class="btn btn-primary">
+                            <button
+                              class="btn btn-primary"
+                              :disabled="!canReview"
+                            >
                               Gửi Đánh Giá
                             </button>
                           </div>

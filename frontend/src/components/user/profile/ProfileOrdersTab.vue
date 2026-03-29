@@ -60,7 +60,7 @@ function getStatusClass(status) {
             </td>
             <td>
               <button
-                class="btn btn-view-order"
+                class="btn btn-primary"
                 @click="$emit('view-order-detail', order)"
               >
                 Xem chi tiết

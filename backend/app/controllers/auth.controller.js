@@ -20,8 +20,16 @@ exports.login = async (req, res, next) => {
     if (!isValid) {
       return next(new ApiError(401, "Email hoặc mật khẩu không đúng"));
     }
-    if (user.status !== "active") {
+    if (user.status === "pending") {
       return next(new ApiError(403, "Tài khoản chưa được kích hoạt"));
+    }
+    if (user.status === "blocked") {
+      return next(
+        new ApiError(
+          403,
+          "Tài khoản của bạn đã bị khóa. vui lòng liên hệ cửa hàng để được hỗ trợ",
+        ),
+      );
     }
     return res.send({
       message: "Đăng nhập thành công",

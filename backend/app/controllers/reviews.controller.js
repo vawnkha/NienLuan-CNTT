@@ -43,10 +43,10 @@ exports.findByProduct = async (req, res, next) => {
   try {
     const reviewService = new ReviewsService(MongoDB.client);
     const reviews = await reviewService.findByProductId(req.params.productId);
-    const stats = await reviewService.getReviewStats(req.params.productId);
+    const stars = await reviewService.getReviewStars(req.params.productId);
 
     return res.send({
-      stats,
+      stars,
       reviews,
     });
   } catch (error) {

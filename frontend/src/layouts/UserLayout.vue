@@ -1,6 +1,8 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useAppLoading } from "@/stores/user/appLoading";
+import "@/assets/css/user/style.css";
+import "@/assets/css/user/responsive.css";
 import UserHeader from "@/components/user/layout/UserHeader.vue";
 import UserFooter from "@/components/user/layout/UserFooter.vue";
 

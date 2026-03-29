@@ -47,7 +47,7 @@ const newAddressForm = reactive({
 const isSuccessModalOpen = ref(false);
 const successMessage = ref("");
 
-const shippingFee = computed(() => (items.value.length ? 30000 : 0));
+const shippingFee = computed(() => (items.value.length ? 0 : 0));
 const grandTotal = computed(
   () => Number(cartTotal.value || 0) + Number(shippingFee.value || 0),
 );

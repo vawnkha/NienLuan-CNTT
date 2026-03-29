@@ -1,5 +1,6 @@
 <script setup>
-import { reactive } from "vue";
+import { reactive, ref } from "vue";
+import contactService from "@/services/contact.service";
 
 const contactForm = reactive({
   name: "",
@@ -8,9 +9,40 @@ const contactForm = reactive({
   content: "",
 });
 
-function handleSubmit() {
-  console.log("Contact form:", { ...contactForm });
-  alert("Đã gửi form liên hệ (demo)");
+const submitting = ref(false);
+
+async function handleSubmit() {
+  if (
+    !contactForm.name.trim() ||
+    !contactForm.email.trim() ||
+    !contactForm.subject.trim() ||
+    !contactForm.content.trim()
+  ) {
+    alert("Vui lòng nhập đầy đủ thông tin");
+    return;
+  }
+
+  try {
+    submitting.value = true;
+
+    await contactService.create({
+      name: contactForm.name,
+      email: contactForm.email,
+      subject: contactForm.subject,
+      content: contactForm.content,
+    });
+
+    alert("Gửi liên hệ thành công");
+
+    contactForm.name = "";
+    contactForm.email = "";
+    contactForm.subject = "";
+    contactForm.content = "";
+  } catch (error) {
+    alert(error?.response?.data?.message || "Không thể gửi liên hệ");
+  } finally {
+    submitting.value = false;
+  }
 }
 </script>
 
@@ -77,7 +109,7 @@ function handleSubmit() {
           </div>
         </div>
 
-        <div class="contact-map">
+        <!-- <div class="contact-map">
           <div
             id="map"
             style="
@@ -95,7 +127,7 @@ function handleSubmit() {
           <div class="hidden-lg hidden-md hidden-sm hidden-xs contact-address">
             Khu 2, Đ. 3/2, P. Ninh Kiều, TP. Cần Thơ
           </div>
-        </div>
+        </div> -->
 
         <div class="contact-intro">
           <p>
@@ -149,7 +181,12 @@ function handleSubmit() {
             </div>
 
             <div class="form-group text-center">
-              <input type="submit" class="btn btn-primary" value="Gửi" />
+              <input
+                type="submit"
+                class="btn btn-primary"
+                :value="submitting ? 'Đang gửi...' : 'Gửi'"
+                :disabled="submitting"
+              />
             </div>
           </form>
         </div>

@@ -11,7 +11,7 @@ const { items, cartTotal, loading } = storeToRefs(cartStore);
 const pageLoading = ref(false);
 const actionLoadingMap = ref({});
 
-const shippingFee = computed(() => (items.value.length ? 30000 : 0));
+const shippingFee = computed(() => (items.value.length ? 0 : 0));
 const grandTotal = computed(
   () => Number(cartTotal.value || 0) + shippingFee.value,
 );

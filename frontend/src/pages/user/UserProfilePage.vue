@@ -385,6 +385,33 @@ async function cancelOrder(orderId) {
   }
 }
 
+async function completeOrder(orderId) {
+  try {
+    const updated = await ordersService.complete(orderId);
+    const normalized = normalizeOrder(updated);
+
+    const index = orders.value.findIndex(
+      (item) => item.id === orderId || item._id === orderId,
+    );
+
+    if (index !== -1) {
+      orders.value[index] = normalized;
+    }
+
+    if (
+      selectedOrder.value &&
+      (selectedOrder.value.id === orderId ||
+        selectedOrder.value._id === orderId)
+    ) {
+      selectedOrder.value = normalized;
+    }
+
+    alert("Xác nhận nhận hàng thành công");
+  } catch (error) {
+    alert(error?.response?.data?.message || "Xác nhận đơn hàng thất bại");
+  }
+}
+
 onMounted(async () => {
   await Promise.all([fetchUserProfile(), fetchOrders(), fetchAddresses()]);
 });
@@ -447,6 +474,7 @@ onMounted(async () => {
               :order="selectedOrder"
               @back-to-orders="backToOrders"
               @cancel-order="cancelOrder"
+              @complete-order="completeOrder"
             />
 
             <ProfileAddressesTab

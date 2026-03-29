@@ -44,7 +44,7 @@ function handleAvatarChange(event) {
         />
         <button
           type="button"
-          class="btn btn-change-avatar"
+          class="btn btn-primary"
           @click="triggerchooseAvatar"
         >
           ĐỔI ẢNH ĐẠI DIỆN
@@ -94,7 +94,7 @@ function handleAvatarChange(event) {
       </div>
     </div>
     <div style="margin-top: 35px">
-      <button class="btn btn-update-account" @click="$emit('update-account')">
+      <button class="btn btn-primary" @click="$emit('update-account')">
         CẬP NHẬT
       </button>
     </div>

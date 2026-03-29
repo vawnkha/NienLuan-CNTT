@@ -42,11 +42,19 @@ class OrdersService {
     return {
       _id: doc._id,
       user_id: doc.user_id,
+      user: doc.user
+        ? {
+            _id: doc.user._id,
+            name: doc.user.name || "",
+            email: doc.user.email || "",
+          }
+        : null,
 
       status: doc.status,
       status_text: this.mapStatusText(doc.status),
 
       payment_method: this.mapPaymentMethod(doc.payment?.method),
+      payment_status: this.mapPaymentMethod(doc.payment?.status),
 
       total_price: Number(doc.total_price || 0),
 
@@ -99,6 +107,49 @@ class OrdersService {
     return { ok: true };
   }
 
+  async findAll() {
+    const docs = await this.Order.aggregate([
+      {
+        $lookup: {
+          from: "addresses",
+          localField: "address_id",
+          foreignField: "_id",
+          as: "address",
+        },
+      },
+      { $unwind: { path: "$address", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: "payments",
+          localField: "_id",
+          foreignField: "order_id",
+          as: "payment",
+        },
+      },
+      { $unwind: { path: "$payment", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "user_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: {
+          path: "$user",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      { $sort: { created_at: -1 } },
+    ]).toArray();
+
+    return docs.map((doc) => this.normalizeOrder(doc));
+  }
+
   async findByUser(userId) {
     const uid = ObjectId.isValid(userId) ? new ObjectId(userId) : null;
     if (!uid) return [];
@@ -125,6 +176,20 @@ class OrdersService {
         },
       },
       { $unwind: { path: "$payment", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: {
+          path: "$user",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
 
       { $sort: { created_at: -1 } },
     ]).toArray();
@@ -281,6 +346,20 @@ class OrdersService {
         },
       },
       { $unwind: { path: "$address", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: {
+          path: "$user",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
     ]).toArray();
 
     if (!doc) return null;

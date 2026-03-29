@@ -6,7 +6,7 @@ defineProps({
   },
 });
 
-defineEmits(["back-to-orders", "cancel-order"]);
+defineEmits(["back-to-orders", "cancel-order", "complete-order"]);
 
 function getStatusClass(status) {
   switch ((status || "").toLowerCase()) {
@@ -32,7 +32,7 @@ function getStatusClass(status) {
   <div class="profile-content-box">
     <div class="order-detail-header">
       <h3 class="profile-section-title">Chi tiết đơn hàng #{{ order.id }}</h3>
-      <button class="btn btn-back-order" @click="$emit('back-to-orders')">
+      <button class="btn btn-primary" @click="$emit('back-to-orders')">
         Quay lại
       </button>
     </div>
@@ -123,6 +123,14 @@ function getStatusClass(status) {
         @click="$emit('cancel-order', order.id)"
       >
         Hủy đơn hàng
+      </button>
+
+      <button
+        v-if="order.rawStatus === 'shipping'"
+        class="btn btn-primary"
+        @click="$emit('complete-order', order.id)"
+      >
+        Đã nhận đơn hàng
       </button>
     </div>
   </div>

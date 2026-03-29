@@ -17,6 +17,11 @@ class UserService {
     return res.data;
   }
 
+  async getAll(params = {}) {
+    const res = await this.api.get("/", { params });
+    return res.data;
+  }
+
   async getUserById(id) {
     const res = await this.api.get(`/${id}`);
     return res.data;
@@ -24,6 +29,11 @@ class UserService {
 
   async updateUser(id, data) {
     const res = await this.api.put(`/${id}`, data);
+    return res.data;
+  }
+
+  async deleteUser(id) {
+    const res = await this.api.delete(`/${id}`);
     return res.data;
   }
 

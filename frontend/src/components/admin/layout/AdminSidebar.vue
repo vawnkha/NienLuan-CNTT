@@ -1,13 +1,201 @@
-<template>
-  <aside class="admin-sidebar p-3 border-end" style="width: 260px">
-    <h3>Admin</h3>
+<script setup>
+import { computed, ref, watch } from "vue";
+import { useRoute } from "vue-router";
+import { useAuthStore } from "@/stores/user/auth";
 
-    <ul class="list-unstyled">
-      <li><router-link to="/admin">Dashboard</router-link></li>
-      <li><router-link to="/admin/products">Sản phẩm</router-link></li>
-      <li><router-link to="/admin/categories">Danh mục</router-link></li>
-      <li><router-link to="/admin/orders">Đơn hàng</router-link></li>
-      <li><router-link to="/admin/users">Người dùng</router-link></li>
+const route = useRoute();
+const authStore = useAuthStore();
+
+const avatar = computed(() => {
+  return (
+    authStore.user?.avatar ||
+    authStore.user?.avatar_url ||
+    "https://via.placeholder.com/120"
+  );
+});
+
+const openGroups = ref({
+  categories: false,
+  products: false,
+});
+
+const menus = [
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    icon: "fa-solid fa-house",
+    to: { name: "admin-dashboard" },
+    names: ["admin-dashboard"],
+  },
+  {
+    key: "users",
+    label: "Quản lý người dùng",
+    icon: "fa-solid fa-users",
+    to: { name: "admin-users" },
+    names: ["admin-users"],
+  },
+  {
+    key: "categories",
+    label: "Quản lý danh mục",
+    icon: "fa-solid fa-lock",
+    to: null,
+    names: ["admin-categories", "admin-category-create", "admin-category-edit"],
+    children: [
+      {
+        label: "Thêm danh mục",
+        to: { name: "admin-category-create" },
+        names: ["admin-category-create"],
+      },
+      {
+        label: "Danh sách danh mục",
+        to: { name: "admin-categories" },
+        names: ["admin-categories", "admin-category-edit"],
+      },
+    ],
+  },
+  {
+    key: "products",
+    label: "Quản lý sản phẩm",
+    icon: "fa-solid fa-desktop",
+    to: null,
+    names: ["admin-products", "admin-product-create", "admin-product-edit"],
+    children: [
+      {
+        label: "Thêm sản phẩm",
+        to: { name: "admin-product-create" },
+        names: ["admin-product-create"],
+      },
+      {
+        label: "Danh sách sản phẩm",
+        to: { name: "admin-products" },
+        names: ["admin-products", "admin-product-edit"],
+      },
+    ],
+  },
+  {
+    key: "orders",
+    label: "Quản lý đơn hàng",
+    icon: "fa-solid fa-pen-to-square",
+    to: { name: "admin-orders" },
+    names: ["admin-orders", "admin-order-detail"],
+  },
+  {
+    key: "contacts",
+    label: "Quản lý liên hệ",
+    icon: "fa-solid fa-envelope",
+    to: { name: "admin-contacts" },
+    names: ["admin-contacts"],
+  },
+  {
+    key: "notifications",
+    label: "Thông báo",
+    icon: "fa-solid fa-bell",
+    to: { name: "admin-notifications" },
+    names: ["admin-notifications"],
+  },
+];
+
+function isActive(item) {
+  return item.names?.includes(route.name);
+}
+
+function isChildActive(child) {
+  return child.names?.includes(route.name);
+}
+
+function toggleGroup(key) {
+  openGroups.value[key] = !openGroups.value[key];
+}
+
+function syncOpenGroupsByRoute() {
+  openGroups.value.categories = [
+    "admin-categories",
+    "admin-category-create",
+    "admin-category-edit",
+  ].includes(route.name);
+
+  openGroups.value.products = [
+    "admin-products",
+    "admin-product-create",
+    "admin-product-edit",
+  ].includes(route.name);
+}
+
+watch(
+  () => route.name,
+  () => {
+    syncOpenGroupsByRoute();
+  },
+  { immediate: true },
+);
+</script>
+
+<template>
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar__brand">
+      <i class="fa-solid fa-paw me-2"></i>
+      VEGGIE!
+    </div>
+
+    <div class="admin-sidebar__profile">
+      <img :src="avatar" class="admin-sidebar__avatar" />
+      <div>
+        <div class="admin-sidebar__hello">Xin chào,</div>
+        <div class="admin-sidebar__name">Admin</div>
+      </div>
+    </div>
+
+    <div class="admin-sidebar__section">Tổng quan</div>
+
+    <ul class="admin-menu">
+      <li v-for="item in menus" :key="item.key" class="admin-menu__item">
+        <template v-if="!item.children">
+          <RouterLink
+            :to="item.to"
+            class="admin-menu__link"
+            :class="{ 'is-active': isActive(item) }"
+          >
+            <i :class="item.icon"></i>
+            <span>{{ item.label }}</span>
+          </RouterLink>
+        </template>
+
+        <template v-else>
+          <button
+            type="button"
+            class="admin-menu__link admin-menu__toggle"
+            :class="{ 'is-active': isActive(item) }"
+            @click="toggleGroup(item.key)"
+          >
+            <span class="admin-menu__left">
+              <i :class="item.icon"></i>
+              <span>{{ item.label }}</span>
+            </span>
+            <i
+              class="fa-solid fa-angle-down admin-menu__arrow"
+              :class="{ 'is-open': openGroups[item.key] }"
+            ></i>
+          </button>
+
+          <transition name="admin-submenu">
+            <ul v-if="openGroups[item.key]" class="admin-submenu">
+              <li
+                v-for="child in item.children"
+                :key="child.label"
+                class="admin-submenu__item"
+              >
+                <RouterLink
+                  :to="child.to"
+                  class="admin-submenu__link"
+                  :class="{ 'is-active': isChildActive(child) }"
+                >
+                  {{ child.label }}
+                </RouterLink>
+              </li>
+            </ul>
+          </transition>
+        </template>
+      </li>
     </ul>
   </aside>
 </template>

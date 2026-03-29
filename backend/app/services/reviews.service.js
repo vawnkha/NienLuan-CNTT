@@ -24,12 +24,15 @@ class ReviewsService {
           : null
         : undefined,
       rating: payload.rating !== undefined ? Number(payload.rating) : undefined,
-      comment: payload.comment,
+      comment:
+        typeof payload.comment === "string" ? payload.comment.trim() : "",
       created_at: new Date(),
     };
+
     Object.keys(review).forEach(
       (key) => review[key] === undefined && delete review[key],
     );
+
     return review;
   }
 
@@ -56,11 +59,13 @@ class ReviewsService {
     const pid = ObjectId.isValid(productId) ? new ObjectId(productId) : null;
 
     if (!uid || !pid) return false;
+
     const order = await this.Order.findOne({
       user_id: uid,
       status: { $in: ["delivered", "completed"] },
       "items.product_id": pid,
     });
+
     return !!order;
   }
 
@@ -82,6 +87,7 @@ class ReviewsService {
         message: "Sản phẩm không tồn tại",
       };
     }
+
     const user = await this.User.findOne({ _id: uid });
     if (!user) {
       return {
@@ -89,6 +95,7 @@ class ReviewsService {
         message: "Người dùng không tồn tại",
       };
     }
+
     const hasPurchased = await this.hasPurchasedProduct(userId, productId);
     if (!hasPurchased) {
       return {
@@ -96,6 +103,7 @@ class ReviewsService {
         message: "Bạn chỉ có thể đánh giá sản phẩm đã mua",
       };
     }
+
     const existedReview = await this.findByUserAndProduct(userId, productId);
     if (existedReview) {
       return {
@@ -103,11 +111,24 @@ class ReviewsService {
         message: "Bạn đã đánh giá sản phẩm này rồi",
       };
     }
+
     return { canReview: true };
   }
 
   async create(payload) {
     const review = this.extractData(payload);
+
+    if (!review.user_id) return { error: "user không hợp lệ" };
+    if (!review.product_id) return { error: "product không hợp lệ" };
+    if (
+      !Number.isInteger(review.rating) ||
+      review.rating < 1 ||
+      review.rating > 5
+    ) {
+      return { error: "rating phải là số nguyên từ 1 đến 5" };
+    }
+    if (!review.comment)
+      return { error: "Nội dung đánh giá không được để trống" };
 
     const existedUser = await this.User.findOne({ _id: review.user_id });
     if (!existedUser) return { error: "Người dùng không tồn tại" };
@@ -132,9 +153,12 @@ class ReviewsService {
   async findByProductId(productId) {
     const pid = ObjectId.isValid(productId) ? new ObjectId(productId) : null;
 
+    if (!pid) return [];
+
     return await this.Review.aggregate([
       { $match: { product_id: pid } },
       { $sort: { created_at: -1 } },
+      { $limit: 10 },
       {
         $lookup: {
           from: "users",
@@ -151,24 +175,37 @@ class ReviewsService {
       },
       {
         $project: {
-          _id: 1,
-          user_id: 1,
-          product_id: 1,
+          _id: 0,
+          id: { $toString: "$_id" },
+          user_id: { $toString: "$user_id" },
+          product_id: { $toString: "$product_id" },
           rating: 1,
-          comment: 1,
-          created_at: 1,
-          user_name: "$user.name",
-          user_email: "$user.email",
-          user_avatar: "$user.avatar_url",
+          content: { $ifNull: ["$comment", ""] },
+          time: {
+            $dateToString: {
+              format: "%d/%m/%Y %H:%M",
+              date: "$created_at",
+              timezone: "Asia/Ho_Chi_Minh",
+            },
+          },
+          author: { $ifNull: ["$user.name", "Người dùng"] },
+          avatar: { $ifNull: ["$user.avatar_url", "/img/avatar.jpg"] },
         },
       },
     ]).toArray();
   }
 
-  async getReviewStats(productId) {
+  async getReviewStars(productId) {
     const pid = ObjectId.isValid(productId) ? new ObjectId(productId) : null;
 
-    const stats = await this.Review.aggregate([
+    if (!pid) {
+      return {
+        total_reviews: 0,
+        average_rating: 0,
+      };
+    }
+
+    const stars = await this.Review.aggregate([
       { $match: { product_id: pid } },
       {
         $group: {
@@ -179,15 +216,16 @@ class ReviewsService {
       },
     ]).toArray();
 
-    if (stats.length === 0) {
+    if (stars.length === 0) {
       return {
         total_reviews: 0,
         average_rating: 0,
       };
     }
+
     return {
-      total_reviews: stats[0].total_reviews,
-      average_rating: Number(stats[0].average_rating.toFixed(1)),
+      total_reviews: stars[0].total_reviews,
+      average_rating: Number(stars[0].average_rating.toFixed(1)),
     };
   }
 }

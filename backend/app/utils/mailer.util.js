@@ -18,7 +18,7 @@ function createTransporter() {
 async function sendActivationEmail({ to, name, activationLink }) {
   const transporter = createTransporter();
 
-  const from = `MyShop <${process.env.MAIL_USER}>`;
+  const from = `Fresh Mart <${process.env.MAIL_USER}>`;
   const subject = "Kích hoạt tài khoản của bạn";
 
   const html = `
@@ -41,7 +41,7 @@ async function sendActivationEmail({ to, name, activationLink }) {
 async function sendResetPasswordEmail({ to, name, resetLink, expiresMinutes }) {
   const transporter = createTransporter();
 
-  const from = `MyShop <${process.env.MAIL_USER}>`;
+  const from = `Fresh Mart <${process.env.MAIL_USER}>`;
   const subject = "Đặt lại mật khẩu";
 
   const html = `
@@ -62,4 +62,48 @@ async function sendResetPasswordEmail({ to, name, resetLink, expiresMinutes }) {
   return transporter.sendMail({ from, to, subject, html });
 }
 
-module.exports = { sendActivationEmail, sendResetPasswordEmail };
+async function sendContactReplyEmail({
+  to,
+  name,
+  subject,
+  originalContent,
+  adminReply,
+}) {
+  const transporter = createTransporter();
+
+  const from = `Fresh Mart <${process.env.MAIL_USER}>`;
+  const mailSubject = `Phản hồi liên hệ: ${subject}`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height:1.6; color:#333">
+      <h2>Xin chào ${name || "bạn"},</h2>
+
+      <p>Chúng tôi đã nhận được liên hệ của bạn với nội dung:</p>
+
+      <div style="padding:12px;background:#f5f7fa;border-left:4px solid #999;margin:10px 0">
+        ${String(originalContent).replace(/\n/g, "<br>")}
+      </div>
+
+      <p><strong>Phản hồi từ chúng tôi:</strong></p>
+
+      <div style="padding:12px;background:#e8f7f5;border-left:4px solid #49c5b6;margin:10px 0">
+        ${String(adminReply).replace(/\n/g, "<br>")}
+      </div>
+
+      <p>Trân trọng,<br><strong>Fresh Mart</strong></p>
+    </div>
+  `;
+
+  return transporter.sendMail({
+    from,
+    to,
+    subject: mailSubject,
+    html,
+  });
+}
+
+module.exports = {
+  sendActivationEmail,
+  sendResetPasswordEmail,
+  sendContactReplyEmail,
+};
