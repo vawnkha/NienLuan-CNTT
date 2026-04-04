@@ -5,6 +5,7 @@ const order = require("../controllers/orders.controller");
 router.post("/", order.create);
 router.get("/all", order.findAll);
 router.get("/", order.findByUser);
+router.post("/:id/send-invoice", order.sendInvoice);
 router.get("/:id", order.findOne);
 router.patch("/:id/cancel", order.cancel);
 router.patch("/:id/complete", order.complete);

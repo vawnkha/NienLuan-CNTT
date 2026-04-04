@@ -51,7 +51,7 @@ async function fetchData() {
 
 async function addToCart(productId) {
   if (!authStore.userId) {
-    alert("Vui lòng đăng nhập");
+    alert("Vui lòng đăng nhập để thêm vào giỏ hàng");
     return;
   }
 

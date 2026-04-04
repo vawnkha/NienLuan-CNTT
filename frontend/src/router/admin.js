@@ -1,6 +1,6 @@
 const adminRoutes = [
   {
-    path: "/admin/login",
+    path: "/admin-login",
     component: () => import("@/layouts/AdminLayout.vue"),
     children: [
       {

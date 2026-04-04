@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const http = require("http");
+const { Server } = require("socket.io");
 const userRoute = require("./app/routes/user.route");
 const wishlistRoute = require("./app/routes/wishlist.route");
 const categoryRoute = require("./app/routes/categories.route");
@@ -12,9 +14,32 @@ const orderRoute = require("./app/routes/orders.route");
 const paymentRoute = require("./app/routes/payments.route");
 const contactRoute = require("./app/routes/contacts.route");
 const loginRoute = require("./app/routes/auth.route");
+const notificationRoute = require("./app/routes/notifications.route");
 const ApiError = require("./app/api-error");
 
+const { initSocket } = require("./app/utils/socket.util");
+
 const app = express();
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: true,
+    credentials: true,
+  },
+});
+
+initSocket(io);
+
+io.on("connection", (socket) => {
+  console.log("Socket connected:", socket.id);
+  socket.on("admin:join", () => {
+    socket.join("admin-room");
+  });
+  socket.on("disconnect", () => {
+    console.log("Socket disconnected:", socket.id);
+  });
+});
 
 app.use(cors());
 app.use(express.json());
@@ -31,6 +56,7 @@ app.use("/api/cart", cartRoute);
 app.use("/api/order", orderRoute);
 app.use("/api/payment", paymentRoute);
 app.use("/api/contacts", contactRoute);
+app.use("/api/notifications", notificationRoute);
 app.use("/api/auth", loginRoute);
 
 app.get("/", (req, res) => {
@@ -47,4 +73,4 @@ app.use((err, req, res, next) => {
   });
 });
 
-module.exports = app;
+module.exports = { app, server };

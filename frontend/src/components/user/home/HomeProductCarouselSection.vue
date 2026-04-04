@@ -30,30 +30,30 @@ const cartStore = useCartStore();
 const wishlistStore = useWishlistStore();
 const authStore = useAuthStore();
 const modules = [Navigation];
-const product = props.products.find(
-  (item) => String(item._id) === String(productId),
-);
 
-async function addToCart(productId) {
+async function addToCart(product) {
   if (!authStore.userId) {
-    alert("Vui lòng đăng nhập");
+    alert("Vui lòng đăng nhập để thêm vào giỏ hàng");
     return;
   }
 
-  if (Number(product.stock) <= 0) {
+  if (product.stock <= 0) {
     alert("Sản phẩm đã hết hàng");
     return;
   }
 
-  await cartStore.addToCart(authStore.userId, productId, 1);
+  await cartStore.addToCart(authStore.userId, product._id, 1);
   alert("Đã thêm sản phẩm vào giỏ hàng");
 }
 
-async function toggleWishlistItem(productId) {
+async function toggleWishlistItem(product) {
   if (!authStore.userId) return alert("Vui lòng đăng nhập");
 
   try {
-    const res = await wishlistStore.toggleWishlist(authStore.userId, productId);
+    const res = await wishlistStore.toggleWishlist(
+      authStore.userId,
+      product._id,
+    );
     alert(res.message);
   } catch (error) {
     alert(error.message);

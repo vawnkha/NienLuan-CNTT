@@ -59,7 +59,6 @@ exports.createOrder = async (req, res, next) => {
 
     return res.send({ id: pp.id });
   } catch (error) {
-    console.error("PAYPAL CREATE ORDER ERROR:", error?.response?.data || error);
     return next(new ApiError(500, error.message || "Lỗi tạo PAYPAL order"));
   }
 };
@@ -86,10 +85,6 @@ exports.captureOrder = async (req, res, next) => {
       data: rs.order,
     });
   } catch (error) {
-    console.error(
-      "PAYPAL CAPTURE ERROR:",
-      error?.response?.data || error.message || error,
-    );
     return next(new ApiError(500, error.message || "Lỗi capture PAYPAL order"));
   }
 };

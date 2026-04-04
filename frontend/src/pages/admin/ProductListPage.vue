@@ -264,14 +264,6 @@ onMounted(fetchData);
           />
         </div>
 
-        <div class="admin-export-tools">
-          <span>Copy</span>
-          <span>CSV</span>
-          <span>Excel</span>
-          <span>PDF</span>
-          <span>Print</span>
-        </div>
-
         <div v-if="!filteredProducts.length" class="admin-empty-state">
           Không có sản phẩm phù hợp
         </div>

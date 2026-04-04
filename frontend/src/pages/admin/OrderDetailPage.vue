@@ -5,6 +5,8 @@ import ordersService from "@/services/orders.service";
 
 const route = useRoute();
 const order = ref(null);
+const sendingInvoice = ref(false);
+const invoiceRef = ref(null);
 
 async function fetchOrder() {
   order.value = await ordersService.getById(route.params.id);
@@ -19,6 +21,27 @@ function formatDate(value) {
   return new Date(value).toLocaleString("vi-VN");
 }
 
+async function handleSendInvoice() {
+  try {
+    sendingInvoice.value = true;
+
+    const res = await ordersService.sendInvoice(order.value._id);
+
+    alert(res.message || "Đã gửi hóa đơn");
+
+    order.value.invoice_sent = true;
+    order.value.invoice_sent_at = new Date().toISOString();
+  } catch (err) {
+    alert(err?.response?.data?.message || "Lỗi gửi hóa đơn");
+  } finally {
+    sendingInvoice.value = false;
+  }
+}
+
+function handlePrintInvoice() {
+  window.print();
+}
+
 onMounted(fetchOrder);
 </script>
 
@@ -26,7 +49,7 @@ onMounted(fetchOrder);
   <div v-if="order" class="admin-page">
     <div class="admin-page-title">Hóa đơn</div>
 
-    <section class="admin-panel admin-invoice-panel">
+    <section ref="invoiceRef" class="admin-panel admin-invoice-panel">
       <div class="admin-panel__header">Hóa đơn</div>
 
       <div class="admin-panel__body">
@@ -149,15 +172,28 @@ onMounted(fetchOrder);
             </div>
 
             <div class="invoice-actions">
-              <button class="invoice-link-btn">
+              <button class="invoice-link-btn" @click="handlePrintInvoice">
                 <i class="fa-solid fa-print"></i>
                 <span>In hóa đơn</span>
               </button>
 
-              <button class="admin-btn admin-btn--success">
+              <button
+                v-if="!order?.invoice_sent"
+                class="admin-btn admin-btn--success"
+                :disabled="sendingInvoice"
+                @click="handleSendInvoice"
+              >
                 <i class="fa-solid fa-paper-plane"></i>
-                <span>Gửi hóa đơn</span>
+                <span>{{
+                  sendingInvoice ? "Đang gửi..." : "Gửi hóa đơn"
+                }}</span>
               </button>
+              <div
+                v-if="order?.invoice_sent"
+                style="color: #28a745; font-weight: 600"
+              >
+                ✔ Hóa đơn đã được gửi
+              </div>
             </div>
           </div>
 
@@ -188,3 +224,40 @@ onMounted(fetchOrder);
     </section>
   </div>
 </template>
+<style>
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .admin-invoice-panel,
+  .admin-invoice-panel * {
+    visibility: visible;
+  }
+
+  .admin-invoice-panel {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+
+  .invoice-actions,
+  .admin-topbar,
+  .admin-sidebar,
+  .admin-page-title {
+    display: none !important;
+  }
+
+  .admin-panel__header {
+    border-bottom: 1px solid #ddd !important;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    border-color: #ddd !important;
+  }
+}
+</style>

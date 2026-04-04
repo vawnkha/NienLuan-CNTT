@@ -1,9 +1,10 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/user/auth";
 
 const route = useRoute();
+const router = useRouter();
 const authStore = useAuthStore();
 
 const avatar = computed(() => {
@@ -121,6 +122,15 @@ function syncOpenGroupsByRoute() {
   ].includes(route.name);
 }
 
+async function handleLogout() {
+  try {
+    authStore.logout();
+    router.push("/admin-login");
+  } catch (error) {
+    console.error(error.message);
+  }
+}
+
 watch(
   () => route.name,
   () => {
@@ -132,16 +142,12 @@ watch(
 
 <template>
   <aside class="admin-sidebar">
-    <div class="admin-sidebar__brand">
-      <i class="fa-solid fa-paw me-2"></i>
-      VEGGIE!
-    </div>
+    <div class="admin-sidebar__brand">Fresh Mart</div>
 
     <div class="admin-sidebar__profile">
       <img :src="avatar" class="admin-sidebar__avatar" />
       <div>
-        <div class="admin-sidebar__hello">Xin chào,</div>
-        <div class="admin-sidebar__name">Admin</div>
+        <div class="admin-sidebar__name">Hello, Admin</div>
       </div>
     </div>
 
@@ -197,5 +203,11 @@ watch(
         </template>
       </li>
     </ul>
+
+    <div class="admin-sidebar__logout">
+      <a href="#" @click.prevent="handleLogout">
+        <i class="fa fa-sign-out"></i> Đăng Xuất
+      </a>
+    </div>
   </aside>
 </template>

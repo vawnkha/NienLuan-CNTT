@@ -2,6 +2,7 @@ const ApiError = require("../api-error");
 const MongoDB = require("../utils/mongodb.util");
 const ContactsService = require("../services/contacts.service");
 const { sendContactReplyEmail } = require("../utils/mailer.util");
+const { notifyAdmin } = require("../utils/notify-admin.util");
 
 exports.create = async (req, res, next) => {
   try {
@@ -23,6 +24,18 @@ exports.create = async (req, res, next) => {
       subject,
       content,
       status: "pending",
+    });
+
+    await notifyAdmin({
+      type: "contact",
+      title: "Có liên hệ mới",
+      content: `Có liên hệ mới từ ${document.email}`,
+      data: {
+        contactId: String(document._id),
+        name: document.name,
+        email: document.email,
+        subject: document.subject,
+      },
     });
 
     return res.send({

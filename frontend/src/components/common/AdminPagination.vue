@@ -12,7 +12,7 @@ const props = defineProps({
   },
   pageSize: {
     type: Number,
-    default: 10,
+    default: 12,
   },
   maxVisible: {
     type: Number,

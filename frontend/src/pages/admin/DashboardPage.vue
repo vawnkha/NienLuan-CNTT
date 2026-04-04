@@ -58,7 +58,7 @@ async function fetchExtra() {
   orders.value = orderData;
 
   newestUsers.value = [...users].slice(-5).reverse();
-  newestOrders.value = [...orderData].slice(-5).reverse();
+  newestOrders.value = [...orderData].slice(0, 5).reverse();
 
   bestSelling.value = [...products]
     .sort((a, b) => Number(b.sold || 0) - Number(a.sold || 0))
@@ -367,7 +367,6 @@ onMounted(async () => {
                 <tr>
                   <th>Top</th>
                   <th>Danh mục</th>
-                  <th>Sản phẩm</th>
                 </tr>
               </thead>
               <tbody>
@@ -377,7 +376,6 @@ onMounted(async () => {
                 >
                   <td>#{{ index + 1 }}</td>
                   <td>{{ item.name }}</td>
-                  <td>{{ item.product_count || 0 }}</td>
                 </tr>
               </tbody>
             </table>
@@ -437,7 +435,14 @@ onMounted(async () => {
                 <td>{{ item.name }}</td>
                 <td>{{ item.phone || "-" }}</td>
                 <td>
-                  <span class="admin-badge admin-badge--success">
+                  <span
+                    class="admin-badge"
+                    :class="
+                      item.status === 'active'
+                        ? 'admin-badge--success'
+                        : 'admin-badge--danger'
+                    "
+                  >
                     {{ item.status || "Đã kích hoạt" }}
                   </span>
                 </td>

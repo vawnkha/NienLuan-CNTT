@@ -32,9 +32,6 @@ const emit = defineEmits([
         </thead>
         <tbody>
           <tr v-for="item in addresses" :key="item.id">
-            {{
-              console.log(item)
-            }}
             <td>{{ item.full_name }}</td>
             <td>{{ item.address }}</td>
             <td>{{ item.city }}</td>

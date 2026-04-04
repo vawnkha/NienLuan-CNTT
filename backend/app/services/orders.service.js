@@ -42,6 +42,8 @@ class OrdersService {
     return {
       _id: doc._id,
       user_id: doc.user_id,
+      invoice_sent: doc.invoice_sent || false,
+      invoice_sent_at: doc.invoice_sent_at || null,
       user: doc.user
         ? {
             _id: doc.user._id,

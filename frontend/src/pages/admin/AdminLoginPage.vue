@@ -34,55 +34,40 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div
-    style="
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #f5f5f5;
-    "
-  >
-    <form
-      @submit.prevent="handleLogin"
-      style="width: 350px; text-align: center"
-    >
-      <h2
-        style="
-          font-size: 26px;
-          color: #7a8ca1;
-          font-weight: 500;
-          margin-bottom: 28px;
-        "
-      >
-        Đăng nhập
-      </h2>
+  <div class="admin-login-page">
+    <form @submit.prevent="handleLogin" class="admin-login-form">
+      <h2 class="admin-login-title">Đăng nhập</h2>
 
       <input
         v-model="form.email"
         type="email"
-        class="form-control mb-3"
+        class="admin-login-input form-control"
         placeholder="Email"
       />
 
       <input
         v-model="form.password"
         type="password"
-        class="form-control mb-3"
+        class="admin-login-input form-control"
         placeholder="Mật khẩu"
       />
 
-      <button class="btn btn-link text-decoration-none" :disabled="loading">
-        {{ loading ? "Đang đăng nhập" : "Đăng nhập" }}
+      <button
+        type="submit"
+        class="admin-login-btn text-decoration-none"
+        :disabled="loading"
+      >
+        {{ loading ? "Đang đăng nhập..." : "Đăng nhập" }}
       </button>
 
-      <div v-if="errorMessage" class="text-danger mt-2">{{ errorMessage }}</div>
-
-      <hr class="my-4" />
-      <div style="font-size: 20px; color: #7b8ea6; font-weight: 600">
-        FRESH MART!
+      <div v-if="errorMessage" class="admin-login-error">
+        {{ errorMessage }}
       </div>
-      <div class="text-muted mt-3" style="font-size: 13px">
+
+      <hr class="admin-login-divider" />
+
+      <div class="admin-login-brand">FRESH MART!</div>
+      <div class="admin-login-copy">
         ©2026 All Rights Reserved. Privacy and Terms
       </div>
     </form>

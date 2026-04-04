@@ -41,6 +41,10 @@ class OrdersService {
     const res = await this.api.patch(`/${id}/status`, data);
     return res.data;
   }
+
+  async sendInvoice(id) {
+    return (await this.api.post(`/${id}/send-invoice`)).data;
+  }
 }
 
 export default new OrdersService();

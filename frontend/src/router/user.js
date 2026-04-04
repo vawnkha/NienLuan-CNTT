@@ -42,21 +42,25 @@ const userRoutes = [
         path: "cart",
         name: "cart",
         component: () => import("@/pages/user/CartPage.vue"),
+        meta: { requiresAuth: true },
       },
       {
         path: "checkout",
         name: "checkout",
         component: () => import("@/pages/user/CheckoutPage.vue"),
+        meta: { requiresAuth: true },
       },
       {
         path: "profile",
         name: "profile",
         component: () => import("@/pages/user/UserProfilePage.vue"),
+        meta: { requiresAuth: true },
       },
       {
         path: "wishlist",
         name: "wishlist",
         component: () => import("@/pages/user/WishListPage.vue"),
+        meta: { requiresAuth: true },
       },
       {
         path: "login",

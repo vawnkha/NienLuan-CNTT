@@ -1,6 +1,6 @@
 require("dotenv").config();
 
-const app = require("./app");
+const { server } = require("./app");
 const config = require("./app/config");
 const MongoDB = require("./app/utils/mongodb.util");
 
@@ -10,7 +10,7 @@ async function startServer() {
     console.log("Connected to the database!");
 
     const PORT = config.app.port;
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
   } catch (error) {

@@ -215,14 +215,6 @@ onMounted(fetchOrders);
           </div>
         </div>
 
-        <div class="admin-export-tools">
-          <span>Copy</span>
-          <span>CSV</span>
-          <span>Excel</span>
-          <span>PDF</span>
-          <span>Print</span>
-        </div>
-
         <div v-if="loading" class="admin-empty-state">
           Đang tải dữ liệu đơn hàng...
         </div>

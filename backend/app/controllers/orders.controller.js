@@ -1,7 +1,8 @@
 const ApiError = require("../api-error");
 const MongoDB = require("../utils/mongodb.util");
 const OrdersService = require("../services/orders.service");
-const { ObjectId } = require("mongodb");
+const { sendInvoiceEmail } = require("../utils/mailer.util");
+const { notifyAdmin } = require("../utils/notify-admin.util");
 
 exports.create = async (req, res, next) => {
   try {
@@ -12,15 +13,32 @@ exports.create = async (req, res, next) => {
     }
 
     const service = new OrdersService(MongoDB.client);
+
     const rs = await service.createFromCart({
       userId: user_id,
       addressId: address_id,
       payment_method: payment_method || "cash",
     });
 
-    if (rs?.error) {
-      return next(new ApiError(400, rs.error));
+    if (rs?.error || !rs?.ok || !rs?.order) {
+      return next(new ApiError(400, rs?.error || "Không thể tạo đơn hàng"));
     }
+
+    const order = rs.order;
+
+    await notifyAdmin({
+      type: "order",
+      title: "Có đơn hàng mới",
+      content: `Có đơn đặt hàng mới với mã ${order._id}`,
+      data: {
+        order_id: String(order._id),
+        user_id: String(order.user_id),
+        total_price: order.total_price,
+        status: order.status,
+        payment_method: rs.payment?.method || payment_method || "cash",
+        payment_status: rs.payment?.status || "pending",
+      },
+    });
 
     return res.send({
       message: "Đặt hàng thành công",
@@ -150,5 +168,52 @@ exports.complete = async (req, res, next) => {
     return res.send(doc);
   } catch (error) {
     return next(new ApiError(500, error.message || "Lỗi hủy đơn hàng"));
+  }
+};
+exports.sendInvoice = async (req, res, next) => {
+  try {
+    const ordersService = new OrdersService(MongoDB.client);
+
+    const order = await ordersService.getOrderDetail(req.params.id);
+
+    if (!order) {
+      return next(new ApiError(404, "Không tìm thấy đơn hàng"));
+    }
+
+    if (order.invoice_sent) {
+      return next(new ApiError(400, "Hóa đơn đã được gửi trước đó"));
+    }
+
+    const customerEmail =
+      order.user?.email || order.shipping_address?.email || null;
+
+    if (!customerEmail) {
+      return next(new ApiError(400, "Không có email khách hàng"));
+    }
+
+    const customerName =
+      order.user?.name || order.shipping_address?.fullName || "quý khách";
+
+    await sendInvoiceEmail({
+      to: customerEmail,
+      customerName,
+      order,
+    });
+
+    await ordersService.Order.updateOne(
+      { _id: order._id },
+      {
+        $set: {
+          invoice_sent: true,
+          invoice_sent_at: new Date(),
+        },
+      },
+    );
+
+    return res.send({
+      message: "Đã gửi hóa đơn",
+    });
+  } catch (error) {
+    return next(new ApiError(500, error.message));
   }
 };
