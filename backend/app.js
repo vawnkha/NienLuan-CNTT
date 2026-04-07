@@ -15,6 +15,7 @@ const paymentRoute = require("./app/routes/payments.route");
 const contactRoute = require("./app/routes/contacts.route");
 const loginRoute = require("./app/routes/auth.route");
 const notificationRoute = require("./app/routes/notifications.route");
+const aiRoute = require("./app/routes/ai.route");
 const ApiError = require("./app/api-error");
 
 const { initSocket } = require("./app/utils/socket.util");
@@ -58,6 +59,7 @@ app.use("/api/payment", paymentRoute);
 app.use("/api/contacts", contactRoute);
 app.use("/api/notifications", notificationRoute);
 app.use("/api/auth", loginRoute);
+app.use("/api/ai", aiRoute);
 
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to the backend!" });

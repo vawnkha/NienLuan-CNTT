@@ -104,7 +104,7 @@ async function toggleWishlistItem(product) {
                   v-for="star in 5"
                   :key="star"
                   class="star"
-                  :class="{ on: star <= Number(product.average_rating || 0) }"
+                  :class="{ on: star <= Number(product.average_rating || 5) }"
                 ></div>
               </div>
 

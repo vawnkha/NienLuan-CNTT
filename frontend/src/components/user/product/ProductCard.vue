@@ -79,7 +79,7 @@ async function handleToggleWishlist() {
         :key="star"
         class="star"
         :class="{
-          on: star <= Math.round(product.average_rating || product.rating || 0),
+          on: star <= Math.round(product.average_rating || product.rating || 5),
         }"
       ></div>
     </div>

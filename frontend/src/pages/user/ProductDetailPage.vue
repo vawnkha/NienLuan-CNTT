@@ -686,7 +686,7 @@ function printPage() {
                       v-for="star in 5"
                       :key="star"
                       class="star"
-                      :class="{ on: star <= item.rating }"
+                      :class="{ on: star <= item.rating || 5 }"
                     ></div>
                   </div>
 

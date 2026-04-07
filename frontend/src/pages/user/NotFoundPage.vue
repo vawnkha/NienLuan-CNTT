@@ -1,3 +1,8 @@
+<script>
+import "@/assets/css/user/style.css";
+import "@/assets/css/user/responsive.css";
+</script>
+
 <template>
   <div id="content" class="site-content page-404">
     <div class="container">
@@ -18,11 +23,9 @@
             thống để được hỗ trợ và báo cáo lỗi chi tiết bên dưới.
           </div>
 
-          <router-link to="/"
-            ><a class="btn btn-primary"
-              ><i class="fa fa-home" aria-hidden="true"></i
-              ><span>Quay Lại Trang Chủ</span></a
-            ></router-link
+          <router-link to="/" class="btn btn-primary"
+            ><i class="fa fa-home" aria-hidden="true"></i
+            ><span>Quay Lại Trang Chủ</span></router-link
           >
         </div>
 

@@ -144,7 +144,7 @@ onMounted(fetchData);
                       :key="star"
                       class="star"
                       :class="{
-                        on: star <= Math.round(product.average_rating || 0),
+                        on: star <= Math.round(product.average_rating || 5),
                       }"
                     ></div>
                   </div>

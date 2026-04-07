@@ -5,6 +5,7 @@ import "@/assets/css/user/style.css";
 import "@/assets/css/user/responsive.css";
 import UserHeader from "@/components/user/layout/UserHeader.vue";
 import UserFooter from "@/components/user/layout/UserFooter.vue";
+import AiChatBox from "@/components/common/AiChatBox.vue";
 
 const showGoUp = ref(false);
 const { isPageLoading } = useAppLoading();
@@ -33,6 +34,9 @@ onBeforeUnmount(() => {
       <UserHeader />
       <router-view />
       <UserFooter />
+
+      <AiChatBox />
+
       <div v-show="showGoUp" class="go-up">
         <a href="#" @click.prevent="scrollToTop">
           <i class="fa fa-long-arrow-up"></i>
