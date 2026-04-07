@@ -2280,6 +2280,39 @@ a:hover {
   line-height: 1.5;
 }
 
+.admin-sidebar__logout {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  width: 100%;
+  padding: 10px 20px;
+}
+
+.admin-sidebar__logout a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #cbd5e1;
+  font-size: 15px;
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.admin-sidebar__logout a i {
+  font-size: 16px;
+}
+
+.admin-sidebar__logout a:hover {
+  background-color: #1e3a5f;
+  color: #ffffff;
+}
+
+.admin-sidebar__logout a:active {
+  transform: scale(0.98);
+}
+
 @media (max-width: 576px) {
   .admin-login-page {
     padding: 16px;
