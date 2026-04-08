@@ -99,7 +99,11 @@ onMounted(fetchData);
               :class="{ active: activeCategory === category._id }"
             >
               <a href="#" @click.prevent="activeCategory = category._id">
-                <img :src="category.image_url" :alt="category.name" />
+                <img
+                  :src="category.image_url"
+                  :alt="category.name"
+                  style="width: 50px; height: 30px"
+                />
                 <span>{{ category.name }}</span>
               </a>
             </li>
