@@ -188,9 +188,9 @@ onMounted(fetchCategories);
           </div>
 
           <div class="admin-form__actions">
-            <button type="reset" class="admin-btn admin-btn--secondary">
+            <!-- <button type="reset" class="admin-btn admin-btn--secondary">
               Reset
-            </button>
+            </button> -->
             <button
               type="submit"
               class="admin-btn admin-btn--success"

@@ -73,9 +73,9 @@ async function submitForm() {
           </div>
 
           <div class="admin-form__actions">
-            <button type="reset" class="admin-btn admin-btn--primary">
+            <!-- <button type="reset" class="admin-btn admin-btn--primary">
               Reset
-            </button>
+            </button> -->
             <button type="submit" class="admin-btn admin-btn--success">
               Thêm Danh Mục
             </button>

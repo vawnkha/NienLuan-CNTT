@@ -33,12 +33,12 @@ const io = new Server(server, {
 initSocket(io);
 
 io.on("connection", (socket) => {
-  console.log("Socket connected:", socket.id);
+  console.log("Socket connected");
   socket.on("admin:join", () => {
     socket.join("admin-room");
   });
   socket.on("disconnect", () => {
-    console.log("Socket disconnected:", socket.id);
+    console.log("Socket disconnected");
   });
 });
 
