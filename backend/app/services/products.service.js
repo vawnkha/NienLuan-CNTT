@@ -37,7 +37,12 @@ class ProductsService {
   }
 
   escapeRegex(s = "") {
-    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  buildWordRegex(word = "") {
+    const escaped = this.escapeRegex(this.normalizeText(word));
+    return new RegExp(`(^|\\s)${escaped}(?=\\s|$)`, "i");
   }
 
   compluteStatus(stock) {
@@ -60,7 +65,7 @@ class ProductsService {
       unit: payload.unit,
       description: payload.description,
       thumbnail: payload.thumbnail,
-      images: (this.normalizeImages(payload.images) || []).slice(0, 4),
+      images: this.normalizeImages(payload.images).slice(0, 4),
       search_text: this.buildSerchText({
         name: payload.name,
         description: payload.description,
@@ -86,7 +91,6 @@ class ProductsService {
         : undefined,
       price: payload.price !== undefined ? Number(payload.price) : undefined,
       stock: payload.stock !== undefined ? Number(payload.stock) : undefined,
-      status: payload.status,
       unit: payload.unit,
       description: payload.description,
       thumbnail: payload.thumbnail,
@@ -95,16 +99,6 @@ class ProductsService {
         : undefined,
       updated_at: new Date(),
     };
-
-    const nextName = payload.name;
-    const nextDescription = payload.description;
-
-    if (nextName !== undefined || nextDescription !== undefined) {
-      product.search_text = this.buildSerchText({
-        name: nextName ?? "",
-        description: nextDescription ?? "",
-      });
-    }
 
     if (payload.stock !== undefined) {
       product.status = this.compluteStatus(payload.stock);
@@ -134,45 +128,36 @@ class ProductsService {
 
   async findByName(name) {
     return await this.find({
-      name: { $regex: new RegExp(name), $options: "i" },
+      name: { $regex: new RegExp(this.escapeRegex(name), "i") },
     });
   }
 
   buildSearchFilter(query = {}) {
-    const q = (query.q || query.name || "").trim();
+    const q = (
+      query.q ||
+      query.name ||
+      query.search ||
+      query.keyword ||
+      ""
+    ).trim();
+
     const categoryId = query.category_id;
     const filter = {};
 
     if (q) {
-      const n = this.normalizeText(q);
-      const noSpace = n.replace(/\s/g, "");
-      const tokens = n.split(" ").filter(Boolean);
+      const normalizedQ = this.normalizeText(q);
+      const tokens = normalizedQ.split(" ").filter(Boolean);
+      const searchableFields = ["search_text", "name", "description"];
 
-      const p1 = new RegExp(this.escapeRegex(n), "i");
-      const p2 = new RegExp(this.escapeRegex(noSpace), "i");
-      const p3 = tokens.map((t) => new RegExp(this.escapeRegex(t), "i"));
+      filter.$and = tokens.map((token) => {
+        const wordRegex = this.buildWordRegex(token);
 
-      let pFuzzy = null;
-      if (noSpace.length >= 2 && noSpace.length <= 30) {
-        const fuzzy = noSpace.split("").map(this.escapeRegex).join(".*");
-        pFuzzy = new RegExp(fuzzy, "i");
-      }
-
-      filter.$or = [
-        { search_text: { $regex: p1 } },
-        { search_text: { $regex: p2 } },
-        ...(pFuzzy ? [{ search_text: { $regex: pFuzzy } }] : []),
-      ];
-
-      if (tokens.length > 1) {
-        filter.$or.push({
-          $and: p3.map((rx) => ({
-            search_text: { $regex: rx },
+        return {
+          $or: searchableFields.map((field) => ({
+            [field]: { $regex: wordRegex },
           })),
-        });
-      } else {
-        filter.$or.push(...p3.map((rx) => ({ search_text: { $regex: rx } })));
-      }
+        };
+      });
     }
 
     if (categoryId !== undefined && categoryId !== "") {
@@ -416,7 +401,17 @@ class ProductsService {
       _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
     };
 
+    const current = await this.Product.findOne(filter);
+    if (!current) return null;
+
     const update = this.extractUpdateData(payload);
+
+    if (payload.name !== undefined || payload.description !== undefined) {
+      update.search_text = this.buildSerchText({
+        name: payload.name ?? current.name ?? "",
+        description: payload.description ?? current.description ?? "",
+      });
+    }
 
     const result = await this.Product.findOneAndUpdate(
       filter,
