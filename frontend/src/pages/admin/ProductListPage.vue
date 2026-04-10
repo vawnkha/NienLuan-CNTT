@@ -12,6 +12,7 @@ const saving = ref(false);
 
 const currentPage = ref(1);
 const pageSize = ref(12);
+const totalItems = ref(0);
 
 const thumbnailInputRef = ref(null);
 const imagesInputRef = ref(null);
@@ -33,39 +34,27 @@ const editForm = reactive({
   images: [],
 });
 
-const filteredProducts = computed(() => {
-  const q = keyword.value.trim().toLowerCase();
-  if (!q) return products.value;
-
-  return products.value.filter((item) => {
-    return [item.name, item.slug, item.description, item.category_name]
-      .filter(Boolean)
-      .some((value) => String(value).toLowerCase().includes(q));
-  });
-});
-
-const paginatedProducts = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  const end = start + pageSize.value;
-  return filteredProducts.value.slice(start, end);
-});
-
-const totalProducts = computed(() => filteredProducts.value.length);
+const totalProducts = computed(() => totalItems.value);
 const inStockProducts = computed(
-  () => filteredProducts.value.filter((item) => Number(item.stock) > 0).length,
+  () => products.value.filter((item) => Number(item.stock) > 0).length,
 );
 const outOfStockProducts = computed(
-  () => filteredProducts.value.filter((item) => Number(item.stock) <= 0).length,
+  () => products.value.filter((item) => Number(item.stock) <= 0).length,
 );
 
 async function fetchData() {
   try {
     const [productRes, categoryRes] = await Promise.all([
-      productService.getAll(),
+      productService.getAll({
+        page: currentPage.value,
+        limit: pageSize.value,
+        keyword: keyword.value.trim() || undefined,
+      }),
       categoryService.getAll(),
     ]);
 
-    products.value = productRes?.data || productRes || [];
+    products.value = productRes?.data || [];
+    totalItems.value = productRes?.pagination?.total || 0;
     categories.value = categoryRes?.data || categoryRes || [];
   } catch (error) {
     console.error("Lỗi tải dữ liệu sản phẩm:", error);
@@ -184,6 +173,11 @@ async function removeProduct(id) {
 
   try {
     await productService.delete(id);
+
+    if (products.value.length === 1 && currentPage.value > 1) {
+      currentPage.value -= 1;
+    }
+
     await fetchData();
     alert("Xóa sản phẩm thành công");
   } catch (error) {
@@ -196,15 +190,14 @@ function resolveStatus(stock) {
   return Number(stock) > 0 ? "Còn hàng" : "Hết hàng";
 }
 
+function handlePageChange(page) {
+  currentPage.value = page;
+  fetchData();
+}
+
 watch(keyword, () => {
   currentPage.value = 1;
-});
-
-watch(filteredProducts, (list) => {
-  const maxPage = Math.max(1, Math.ceil(list.length / pageSize.value));
-  if (currentPage.value > maxPage) {
-    currentPage.value = maxPage;
-  }
+  fetchData();
 });
 
 onMounted(fetchData);
@@ -264,7 +257,7 @@ onMounted(fetchData);
           />
         </div>
 
-        <div v-if="!filteredProducts.length" class="admin-empty-state">
+        <div v-if="!products.length" class="admin-empty-state">
           Không có sản phẩm phù hợp
         </div>
 
@@ -285,7 +278,7 @@ onMounted(fetchData);
             </thead>
 
             <tbody>
-              <tr v-for="item in paginatedProducts" :key="item._id || item.id">
+              <tr v-for="item in products" :key="item._id || item.id">
                 <td>
                   <div class="admin-product-thumb-wrap">
                     <img
@@ -363,8 +356,9 @@ onMounted(fetchData);
 
           <AdminPagination
             v-model="currentPage"
-            :total-items="filteredProducts.length"
+            :total-items="totalItems"
             :page-size="pageSize"
+            @change="handlePageChange"
           />
         </div>
       </div>

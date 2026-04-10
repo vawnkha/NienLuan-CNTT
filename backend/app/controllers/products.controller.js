@@ -68,18 +68,32 @@ exports.findAll = async (req, res, next) => {
     if (req.query.category_slug) {
       const categoryService = new CategoryService(MongoDB.client);
       const cat = await categoryService.findBySlug(req.query.category_slug);
+
       if (!cat) {
         return res.send({
           data: [],
-          pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
+          pagination: { page: 1, limit: 12, total: 0, totalPages: 0 },
         });
       }
+
       req.query.category_id = String(cat._id);
     }
+
     const result = await productService.search(req.query);
-    return res.send(result);
+
+    return res.send({
+      data: result.data || [],
+      pagination: result.pagination || {
+        page: 1,
+        limit: 12,
+        total: 0,
+        totalPages: 0,
+      },
+    });
   } catch (error) {
-    return next(new ApiError(500, "Lỗi khi truy xuất sản phẩm"));
+    return next(
+      new ApiError(500, error.message || "Lỗi khi truy xuất sản phẩm"),
+    );
   }
 };
 

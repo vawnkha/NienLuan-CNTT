@@ -86,7 +86,7 @@ async function handleToggleWishlist() {
               :class="{
                 on:
                   star <=
-                  Math.round(product.average_rating || product.rating || 0),
+                  Math.round(product.average_rating || product.rating || 5),
               }"
             ></div>
             <span class="review-count"
