@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { Swiper, SwiperSlide } from "swiper/vue";
 import { Navigation } from "swiper/modules";
 import { useAuthStore } from "@/stores/user/auth";
@@ -19,35 +19,56 @@ const activeCategory = ref("all");
 const categories = ref([]);
 const products = ref([]);
 
+async function fetchCategories() {
+  const catRes = await categoryService.getAll();
+  categories.value = [
+    {
+      _id: "all",
+      name: "Tất Cả",
+      image_url: "/img/product/product-category-0.png",
+    },
+    ...(catRes || []),
+  ];
+}
+
+async function fetchProductsByCategory() {
+  try {
+    if (activeCategory.value === "all") {
+      const productRes = await productService.getAll({
+        page: 1,
+        limit: 20,
+      });
+      products.value = productRes.data || [];
+    } else {
+      const productRes = await productService.getByCategory(
+        activeCategory.value,
+        {
+          page: 1,
+          limit: 20,
+        },
+      );
+      products.value = productRes.data || [];
+    }
+  } catch (error) {
+    console.error(error.message);
+  }
+}
+
+async function fetchData() {
+  try {
+    await fetchCategories();
+    await fetchProductsByCategory();
+  } catch (error) {
+    console.error(error.message);
+  }
+}
+
 const filteredProducts = computed(() => {
   if (activeCategory.value === "all") return products.value;
   return products.value.filter(
     (item) => String(item.category_id) === String(activeCategory.value),
   );
 });
-
-async function fetchData() {
-  try {
-    const catRes = await categoryService.getAll();
-    categories.value = [
-      {
-        _id: "all",
-        name: "Tất Cả",
-        image_url: "/img/product/product-category-0.png",
-      },
-      ...(catRes || []),
-    ];
-
-    const productRes = await productService.getAll({
-      page: 1,
-      limit: 20,
-    });
-
-    products.value = productRes.data || [];
-  } catch (error) {
-    console.error(error.message);
-  }
-}
 
 async function addToCart(productId) {
   if (!authStore.userId) {
@@ -78,6 +99,8 @@ async function toggleWishlistItem(productId) {
     alert(error.message);
   }
 }
+
+watch(activeCategory, fetchProductsByCategory);
 
 onMounted(fetchData);
 </script>
@@ -125,10 +148,7 @@ onMounted(fetchData);
               }"
               class="products-swiper"
             >
-              <SwiperSlide
-                v-for="product in filteredProducts"
-                :key="product._id"
-              >
+              <SwiperSlide v-for="product in products" :key="product._id">
                 <div class="product-item">
                   <div class="product-image">
                     <router-link :to="`/products/${product._id}`">
