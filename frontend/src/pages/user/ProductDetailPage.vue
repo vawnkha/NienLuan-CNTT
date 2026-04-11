@@ -413,7 +413,7 @@ function printPage() {
                               :class="{
                                 on:
                                   star <=
-                                  Math.round(reviewStars.average_rating || 0),
+                                  Math.round(reviewStars.average_rating || 5),
                               }"
                             ></div>
                           </div>
