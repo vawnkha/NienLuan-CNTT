@@ -15,47 +15,37 @@ function vndToUsd(vnd) {
 
 exports.createOrder = async (req, res, next) => {
   try {
-    const { orderId } = req.body;
-    if (!orderId) return next(new ApiError(400, "orderId là bắt buộc"));
+    const { user_id, address_id } = req.body;
+
+    if (!user_id || !address_id) {
+      return next(new ApiError(400, "user_id và address_id là bắt buộc"));
+    }
 
     const ordersService = new OrdersService(MongoDB.client);
-    const paymentsService = new PaymentsService(MongoDB.client);
+    const preview = await ordersService.getCheckoutPreview({
+      userId: user_id,
+      addressId: address_id,
+    });
 
-    const detail = await ordersService.getOrderDetail(orderId);
-    if (!detail) return next(new ApiError(404, "Order không tồn tại"));
-
-    if (detail.status === "canceled") {
-      return next(new ApiError(400, "Order đã bị hủy"));
-    }
-
-    const payment = await paymentsService.findByOrderId(orderId);
-    if (!payment) return next(new ApiError(404, "Payment không tồn tại"));
-
-    if (payment.status === "completed") {
-      return next(new ApiError(400, "Order đã thanh toán"));
-    }
-
-    if (payment.transaction_id) {
-      return res.send({ id: payment.transaction_id });
+    if (preview?.error) {
+      return next(new ApiError(400, preview.error));
     }
 
     const currency = process.env.PAYPAL_CURRENCY || "USD";
     const total =
       currency === "USD"
-        ? vndToUsd(detail.total_price)
-        : Number(detail.total_price);
+        ? vndToUsd(preview.total_price)
+        : Number(preview.total_price);
 
     const pp = await paypalCreateOrder({
       total,
       currency,
-      referenceId: String(detail._id),
+      referenceId: `${user_id}|${address_id}`,
     });
 
     if (!pp?.id) {
       return next(new ApiError(500, "Không tạo được PayPal order"));
     }
-
-    await paymentsService.setMethodAndTransaction(orderId, "paypal", pp.id);
 
     return res.send({ id: pp.id });
   } catch (error) {
@@ -65,19 +55,39 @@ exports.createOrder = async (req, res, next) => {
 
 exports.captureOrder = async (req, res, next) => {
   try {
-    const { paypalOrderId } = req.body;
-    if (!paypalOrderId) {
-      return next(new ApiError(400, "paypalOrderId là bắt buộc"));
+    const { paypalOrderId, user_id, address_id } = req.body;
+
+    if (!paypalOrderId || !user_id || !address_id) {
+      return next(
+        new ApiError(400, "paypalOrderId, user_id, address_id là bắt buộc"),
+      );
     }
 
     const captured = await paypalCaptureOrder(paypalOrderId);
 
     const ordersService = new OrdersService(MongoDB.client);
-    const rs = await ordersService.markPaidByPayPalTransaction(paypalOrderId);
+    const rs = await ordersService.createFromCart({
+      userId: user_id,
+      addressId: address_id,
+      payment_method: "paypal",
+    });
 
-    if (rs?.error) {
-      return next(new ApiError(400, rs.error));
+    if (rs?.error || !rs?.ok || !rs?.order) {
+      return next(new ApiError(400, rs?.error || "Không thể tạo đơn hàng"));
     }
+
+    await ordersService.Payment.updateOne(
+      { _id: rs.payment._id },
+      {
+        $set: {
+          method: "paypal",
+          transaction_id: paypalOrderId,
+          status: "completed",
+          paid_at: new Date(),
+          updated_at: new Date(),
+        },
+      },
+    );
 
     return res.send({
       message: "Thanh toán thành công",

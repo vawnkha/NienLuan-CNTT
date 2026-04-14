@@ -59,7 +59,20 @@ function formatDate(value) {
 
 async function confirmOrder(item) {
   try {
-    await ordersService.updateStatus(item._id, { status: "shipping" });
+    let nextStatus = "";
+
+    if (item.status === "pending") {
+      nextStatus = "processing";
+    } else if (item.status === "processing") {
+      nextStatus = "shipping";
+    } else {
+      return;
+    }
+
+    await ordersService.updateStatus(item._id, {
+      status: nextStatus,
+    });
+
     await fetchOrders();
   } catch (error) {
     alert(error?.message || "Không thể cập nhật trạng thái đơn hàng");
@@ -309,7 +322,9 @@ onMounted(fetchOrders);
                       class="admin-btn admin-btn--success"
                       @click="confirmOrder(item)"
                     >
-                      Xác nhận
+                      {{
+                        item.status === "pending" ? "Xác nhận đơn" : "Giao hàng"
+                      }}
                     </button>
 
                     <button

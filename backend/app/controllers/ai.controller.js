@@ -80,7 +80,6 @@ function scoreProduct(product, normalizedMessage, keywords) {
     score += 200;
   }
 
-  console.log(score);
   return score;
 }
 
@@ -99,7 +98,8 @@ async function callGroq(userMessage, products) {
   const prompt = `
 Bạn là trợ lý AI cho website bán thực phẩm.
 Chỉ trả lời dựa trên dữ liệu sản phẩm bên dưới.
-Nếu không có dữ liệu phù hợp thì nói rõ là chưa tìm thấy sản phẩm phù hợp, và đề xuất các sản phẩm có trong dữ liệu có tên sản phẩm trùng với từ khóa.
+Nếu không có dữ liệu phù hợp thì nói rõ là chưa tìm thấy sản phẩm phù hợp.
+Nếu có dữ liệu phù hợp mà số lượng tồn kho là 0 thì nó rõ có bán sản phẩm nhưng đã hết hàng.
 
 Câu hỏi người dùng:
 ${userMessage}
@@ -194,11 +194,8 @@ exports.chat = async (req, res, next) => {
       return p.matchScore >= Math.max(120, bestScore * 0.6);
     });
 
-    console.log(matchedProducts);
     const topProducts = matchedProducts.slice(0, 5);
-    console.log(topProducts);
     const reply = await callGroq(message, topProducts);
-    console.log(reply);
 
     return res.json({
       reply,

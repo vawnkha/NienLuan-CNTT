@@ -5,13 +5,13 @@ class PaymentService {
     this.api = api(baseUrl);
   }
 
-  async createPaypalOrder(orderId) {
-    const res = await this.api.post("/create-order", { orderId });
+  async createPaypalOrder(payload) {
+    const res = await this.api.post("/create-order", payload);
     return res.data;
   }
 
-  async capturePaypalOrder(paypalOrderId) {
-    const res = await this.api.post("/capture-order", { paypalOrderId });
+  async capturePaypalOrder(payload) {
+    const res = await this.api.post("/capture-order", payload);
     return res.data;
   }
 }

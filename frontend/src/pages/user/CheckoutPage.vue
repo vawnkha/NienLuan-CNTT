@@ -33,7 +33,6 @@ const submitting = ref(false);
 const paypalContainer = ref(null);
 const internalOrderId = ref("");
 
-// modal địa chỉ
 const isAddressModalOpen = ref(false);
 const newAddressForm = reactive({
   fullName: "",
@@ -43,7 +42,6 @@ const newAddressForm = reactive({
   isDefault: false,
 });
 
-// modal thành công
 const isSuccessModalOpen = ref(false);
 const successMessage = ref("");
 
@@ -110,24 +108,6 @@ function validateCheckout() {
   return true;
 }
 
-async function ensureInternalOrder() {
-  if (internalOrderId.value) return internalOrderId.value;
-
-  const res = await orderService.create({
-    user_id: authStore.userId,
-    address_id: selectedAddressId.value,
-    payment_method: "paypal",
-  });
-
-  const orderId = res?.data?.order?._id;
-  if (!orderId) {
-    throw new Error("Không tạo được order nội bộ");
-  }
-
-  internalOrderId.value = orderId;
-  return orderId;
-}
-
 async function renderPaypalButtons() {
   await nextTick();
 
@@ -141,14 +121,22 @@ async function renderPaypalButtons() {
         throw new Error("Checkout không hợp lệ");
       }
 
-      const orderId = await ensureInternalOrder();
-      const pp = await paymentService.createPaypalOrder(orderId);
+      const pp = await paymentService.createPaypalOrder({
+        user_id: authStore.userId,
+        address_id: selectedAddressId.value,
+      });
+
       return pp.id;
     },
 
     async onApprove(data) {
       try {
-        await paymentService.capturePaypalOrder(data.orderID);
+        await paymentService.capturePaypalOrder({
+          paypalOrderId: data.orderID,
+          user_id: authStore.userId,
+          address_id: selectedAddressId.value,
+        });
+
         await cartStore.fetchCart(authStore.userId);
         openSuccessModal("Thanh toán PayPal thành công");
       } catch (error) {
@@ -192,7 +180,6 @@ async function placeCODOrder() {
   }
 }
 
-// modal địa chỉ
 function addNewAddress() {
   newAddressForm.fullName = "";
   newAddressForm.phone = "";
@@ -254,7 +241,6 @@ async function saveNewAddress() {
   }
 }
 
-// modal thành công
 function openSuccessModal(message) {
   successMessage.value = message;
   isSuccessModalOpen.value = true;

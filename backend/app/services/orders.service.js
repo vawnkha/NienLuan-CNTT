@@ -260,19 +260,14 @@ class OrdersService {
       return { error: "Giỏ hàng không hợp lệ" };
     }
 
-    const initialStatus = method === "cash" ? "processing" : "pending";
+    const initialStatus = "pending";
     const orderDoc = {
       user_id: uid,
       items: orderItems,
       address_id: aid,
       total_price: total,
       status: initialStatus,
-      timeline: [
-        this.timelineItem("pending", "Tạo đơn hàng"),
-        ...(method === "cash"
-          ? [this.timelineItem("processing", "Đơn COD đã được xác nhận")]
-          : []),
-      ],
+      timeline: [this.timelineItem("pending", "Tạo đơn hàng")],
       created_at: new Date(),
     };
 
@@ -290,27 +285,25 @@ class OrdersService {
 
     const paymentRs = await this.Payment.insertOne(paymentDoc);
 
-    if (method === "cash") {
-      const stockRs = await this.deductStockForOrderItems(orderItems);
+    const stockRs = await this.deductStockForOrderItems(orderItems);
 
-      if (stockRs?.error) {
-        await this.Payment.updateOne(
-          { _id: paymentRs.insertedId },
-          { $set: { status: "failed" } },
-        );
+    if (stockRs?.error) {
+      await this.Payment.updateOne(
+        { _id: paymentRs.insertedId },
+        { $set: { status: "failed" } },
+      );
 
-        await this.Order.updateOne(
-          { _id: orderRs.insertedId },
-          {
-            $set: { status: "canceled" },
-            $push: {
-              timeline: this.timelineItem("canceled", stockRs.error),
-            },
+      await this.Order.updateOne(
+        { _id: orderRs.insertedId },
+        {
+          $set: { status: "canceled" },
+          $push: {
+            timeline: this.timelineItem("canceled", stockRs.error),
           },
-        );
+        },
+      );
 
-        return { error: stockRs.error };
-      }
+      return { error: stockRs.error };
     }
 
     await this.clearUserCart(uid);
@@ -402,17 +395,6 @@ class OrdersService {
       return { error: "Không tìm thấy order" };
     }
 
-    const stockRs = await this.deductStockForOrderItems(order.items);
-    if (stockRs?.error) {
-      await this.Payment.updateOne(
-        { _id: payment._id },
-        { $set: { status: "failed" } },
-      );
-
-      await this.pushStatus(order._id, "canceled", stockRs.error);
-      return { error: stockRs.error };
-    }
-
     await this.Payment.updateOne(
       { _id: payment._id },
       {
@@ -423,14 +405,81 @@ class OrdersService {
       },
     );
 
-    await this.pushStatus(
-      order._id,
-      "processing",
-      "Thanh toán PAYPAL thành công",
+    await this.Order.updateOne(
+      { _id: order._id },
+      {
+        $push: {
+          timeline: this.timelineItem(
+            "pending",
+            "Thanh toán PAYPAL thành công, chờ xác nhận",
+          ),
+        },
+      },
     );
 
     const detail = await this.getOrderDetail(String(order._id));
     return { ok: true, order: detail };
+  }
+
+  async getCheckoutPreview({ userId, addressId }) {
+    const uid = ObjectId.isValid(userId) ? new ObjectId(userId) : null;
+    const aid = ObjectId.isValid(addressId) ? new ObjectId(addressId) : null;
+
+    if (!uid || !aid) {
+      return { error: "userId và addressId không hợp lệ" };
+    }
+
+    const cart = await this.Cart.findOne({ user_id: uid });
+    if (!cart || !cart.items?.length) {
+      return { error: "Giỏ hàng trống" };
+    }
+
+    const address = await this.Address.findOne({ _id: aid, user_id: uid });
+    if (!address) {
+      return { error: "Địa chỉ giao hàng không hợp lệ" };
+    }
+
+    const ids = cart.items.map((i) => i.product_id);
+    const products = await this.Product.find({ _id: { $in: ids } })
+      .project({ name: 1, price: 1, stock: 1, thumbnail: 1 })
+      .toArray();
+
+    const map = new Map(products.map((p) => [String(p._id), p]));
+
+    let total = 0;
+    const items = [];
+
+    for (const it of cart.items) {
+      const p = map.get(String(it.product_id));
+      if (!p) continue;
+
+      const qty = Math.max(parseInt(it.quantity, 10) || 1, 1);
+      if (Number(p.stock || 0) < qty) {
+        return { error: `Sản phẩm "${p.name}" không đủ tồn kho` };
+      }
+
+      const price = Number(p.price || 0);
+      total += price * qty;
+
+      items.push({
+        product_id: p._id,
+        name: p.name,
+        quantity: qty,
+        price,
+        thumbnail: p.thumbnail || "",
+      });
+    }
+
+    if (!items.length) {
+      return { error: "Giỏ hàng không hợp lệ" };
+    }
+
+    return {
+      ok: true,
+      items,
+      total_price: total,
+      address,
+    };
   }
 }
 
