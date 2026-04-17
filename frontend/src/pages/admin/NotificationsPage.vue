@@ -159,9 +159,9 @@ onMounted(async () => {
           </label>
 
           <div class="notification-actions__right">
-            <button class="admin-btn admin-btn--warning" @click="markAllAsRead">
+            <!-- <button class="admin-btn admin-btn--warning" @click="markAllAsRead">
               Đánh dấu đã đọc
-            </button>
+            </button> -->
 
             <button
               class="admin-btn admin-btn--danger"
